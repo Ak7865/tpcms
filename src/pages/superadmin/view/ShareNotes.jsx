@@ -1,6 +1,6 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import DashboardShell from "../../../components/DashboardShell";
-import { Card, CardBody, Button } from "../../../components/ui";
+import { Card, CardBody, Button, Input } from "../../../components/ui";
 import {
   Upload,
   FileText,
@@ -9,6 +9,8 @@ import {
   BookOpen,
   X,
   Link,
+  Save,
+  Eye,
 } from "lucide-react";
 import { api } from "../../../services/api";
 
@@ -18,155 +20,428 @@ function fileName(url) {
 
 export default function ShareNotes() {
   const fileRef = useRef(null);
+
   const [uploading, setUploading] = useState(false);
-  const [uploadedFiles, setUploadedFiles] = useState([]);
+
+  const [saving, setSaving] = useState(false);
+
+  const [notes, setNotes] = useState([]);
+  const [previewOpen, setPreviewOpen] = useState(false);
+
+  const [selectedNote, setSelectedNote] = useState(null);
+
+  const [uploadedUrl, setUploadedUrl] = useState("");
+
   const [error, setError] = useState("");
+
   const [success, setSuccess] = useState("");
+  function previewNote(note) {
+    setSelectedNote(note);
+    setPreviewOpen(true);
+  }
 
-  async function handleUpload(e) {
-    const files = Array.from(e.target.files || []);
-    if (!files.length) return;
-    setError("");
-    setSuccess("");
+  const [form, setForm] = useState({
+    title: "",
+    description: "",
+  });
 
+  useEffect(() => {
+    loadNotes();
+  }, []);
+
+  async function loadNotes() {
     try {
-      setUploading(true);
-      const res = await api.upload("/uploads/notes", files);
+      const res = await api.get("/notes");
 
-      const urls = res?.data?.fileUrl || res?.fileUrl || res?.data?.fileUrls || res?.fileUrls;
-      const list = Array.isArray(urls) ? urls : urls ? [urls] : [];
-      setUploadedFiles((prev) => [...prev, ...list]);
-      setSuccess(`${list.length} file(s) uploaded successfully!`);
+      console.log("GET /notes =>", res);
+
+      setNotes(res.data || res.data?.data || []);
     } catch (err) {
-      setError("Upload failed: " + (err?.response?.data?.message || err.message));
-    } finally {
-      setUploading(false);
-      if (fileRef.current) fileRef.current.value = "";
+      console.error(err);
     }
   }
 
-  function removeFile(url) {
-    setUploadedFiles((prev) => prev.filter((u) => u !== url));
+  async function handleUpload(e) {
+    const files = Array.from(e.target.files || []);
+
+    if (!files.length) return;
+
+    setUploading(true);
+
+    setError("");
+
+    setSuccess("");
+
+    try {
+      const res = await api.upload("/uploads/notes", files);
+
+      const url = res?.fileUrl || res?.data?.fileUrl || "";
+
+      setUploadedUrl(url);
+
+      setSuccess("File uploaded successfully.");
+    } catch (err) {
+      setError(err?.response?.data?.message || err.message);
+    } finally {
+      setUploading(false);
+
+      if (fileRef.current) {
+        fileRef.current.value = "";
+      }
+    }
+  }
+
+  async function handleSave() {
+    if (!uploadedUrl) {
+      return alert("Please upload a file first.");
+    }
+
+    if (!form.title.trim()) {
+      return alert("Enter note title.");
+    }
+
+    try {
+      setSaving(true);
+
+      await api.post("/notes", {
+        title: form.title,
+        description: form.description,
+        note_url: uploadedUrl,
+      });
+
+      setSuccess("Note saved successfully.");
+
+      setUploadedUrl("");
+
+      setForm({
+        title: "",
+        description: "",
+      });
+
+      await loadNotes();
+    } catch (err) {
+      setError(err?.response?.data?.message || err.message);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  function update(field) {
+    return (e) =>
+      setForm({
+        ...form,
+        [field]: e.target.value,
+      });
   }
 
   function copyLink(url) {
-    navigator.clipboard.writeText(url).then(() => {
-      alert("Link copied to clipboard!");
-    });
+    navigator.clipboard.writeText(url);
+
+    alert("Link copied.");
   }
 
+  function removeFromList(id) {
+    setNotes((prev) => prev.filter((n) => n.note_id !== id));
+  }
   return (
-    <DashboardShell title="Share Notes" subtitle="Upload study materials and notes for students">
+    <DashboardShell
+      title="Share Notes"
+      subtitle="Upload study materials for students"
+    >
       <div className="space-y-6">
+        {/* ============================
+              Upload Card
+      ============================ */}
 
-        {/* Upload zone */}
         <Card>
           <CardBody>
-            <p className="text-sm font-semibold text-slate-300 flex items-center gap-2 mb-4 pb-2 border-b border-orbit-border/50">
+            <p className="mb-5 flex items-center gap-2 border-b border-orbit-border pb-2 text-sm font-semibold text-slate-300">
               <Upload size={16} className="text-orbit-primary" />
-              Upload Notes / Study Material
+              Upload Study Material
             </p>
 
-            <label className="flex flex-col items-center justify-center w-full h-48 rounded-2xl border-2 border-dashed border-orbit-border hover:border-orbit-primary cursor-pointer transition-colors bg-orbit-surface2/20 hover:bg-orbit-primary/5">
-              {uploading ? (
-                <div className="flex flex-col items-center gap-2 text-orbit-primary">
-                  <Loader2 size={28} className="animate-spin" />
-                  <span className="text-sm">Uploading files...</span>
-                </div>
-              ) : (
-                <>
-                  <Upload size={28} className="text-slate-500 mb-2" />
-                  <span className="text-sm text-slate-400 font-medium">Click or drag files to upload</span>
-                  <span className="text-xs text-slate-600 mt-1">PDF, Word, PowerPoint, Images supported</span>
-                  <span className="text-xs text-slate-700 mt-0.5">Multiple files allowed</span>
-                </>
-              )}
-              <input
-                ref={fileRef}
-                type="file"
-                className="hidden"
-                multiple
-                accept=".pdf,.doc,.docx,.ppt,.pptx,.png,.jpg,.jpeg"
-                onChange={handleUpload}
-                disabled={uploading}
-              />
-            </label>
+            <div className="grid gap-5 md:grid-cols-2">
+              <div>
+                <label className="mb-2 block text-xs font-medium text-slate-400">
+                  Note Title
+                </label>
 
-            {success && <div className="mt-4 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-300">{success}</div>}
-            {error && <div className="mt-4 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-300">{error}</div>}
+                <Input
+                  value={form.title}
+                  onChange={update("title")}
+                  placeholder="DBMS Unit 1 Notes"
+                />
+              </div>
+
+              <div>
+                <label className="mb-2 block text-xs font-medium text-slate-400">
+                  Description
+                </label>
+
+                <Input
+                  value={form.description}
+                  onChange={update("description")}
+                  placeholder="Optional description"
+                />
+              </div>
+            </div>
+
+            {/* Upload Area */}
+
+            <div className="mt-6">
+              <label className="flex h-52 w-full cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed border-orbit-border bg-orbit-surface2/30 transition hover:border-orbit-primary hover:bg-orbit-primary/5">
+                {uploading ? (
+                  <div className="flex flex-col items-center gap-3">
+                    <Loader2
+                      size={28}
+                      className="animate-spin text-orbit-primary"
+                    />
+
+                    <span className="text-sm text-slate-300">Uploading...</span>
+                  </div>
+                ) : (
+                  <>
+                    <Upload size={34} className="mb-3 text-orbit-primary" />
+
+                    <p className="text-sm font-medium text-slate-300">
+                      Click to Upload
+                    </p>
+
+                    <p className="mt-1 text-xs text-slate-500">
+                      PDF, DOC, DOCX, PPT, PPTX, JPG, PNG
+                    </p>
+
+                    <p className="mt-2 text-xs text-orbit-primary">
+                      Multiple files supported
+                    </p>
+                  </>
+                )}
+
+                <input
+                  ref={fileRef}
+                  type="file"
+                  multiple
+                  className="hidden"
+                  accept=".pdf,.doc,.docx,.ppt,.pptx,.jpg,.jpeg,.png"
+                  onChange={handleUpload}
+                />
+              </label>
+            </div>
+
+            {/* Uploaded URL */}
+
+            {uploadedUrl && (
+              <div className="mt-5 rounded-xl border border-emerald-500/20 bg-emerald-500/10 p-4">
+                <p className="text-xs font-medium text-emerald-300">
+                  Uploaded File
+                </p>
+
+                <p className="mt-2 break-all text-xs text-slate-300">
+                  {uploadedUrl}
+                </p>
+              </div>
+            )}
+
+            {/* Success */}
+
+            {success && (
+              <div className="mt-5 rounded-xl border border-emerald-500/20 bg-emerald-500/10 p-4 text-sm text-emerald-300">
+                {success}
+              </div>
+            )}
+
+            {/* Error */}
+
+            {error && (
+              <div className="mt-5 rounded-xl border border-red-500/20 bg-red-500/10 p-4 text-sm text-red-300">
+                {error}
+              </div>
+            )}
+
+            {/* Buttons */}
+
+            <div className="mt-6 flex gap-3">
+              <Button
+                loading={saving}
+                icon={<Save size={16} />}
+                onClick={handleSave}
+              >
+                Save Note
+              </Button>
+
+              <Button
+                variant="ghost"
+                onClick={() => {
+                  setUploadedUrl("");
+
+                  setForm({
+                    title: "",
+                    description: "",
+                  });
+
+                  setError("");
+
+                  setSuccess("");
+                }}
+              >
+                Clear
+              </Button>
+            </div>
           </CardBody>
         </Card>
+        {/* ==========================================
+                Saved Notes
+      ========================================== */}
 
-        {/* Uploaded Files */}
-        {uploadedFiles.length > 0 && (
-          <Card>
-            <CardBody>
-              <p className="text-sm font-semibold text-slate-300 flex items-center gap-2 mb-4 pb-2 border-b border-orbit-border/50">
-                <BookOpen size={16} className="text-orbit-primary" />
-                Uploaded Notes ({uploadedFiles.length})
-              </p>
+        <Card>
+          <CardBody>
+            <p className="mb-4 flex items-center gap-2 border-b border-orbit-border pb-2 text-sm font-semibold text-slate-300">
+              <BookOpen size={16} className="text-orbit-primary" />
+              Shared Notes ({notes.length})
+            </p>
 
-              <div className="space-y-3">
-                {uploadedFiles.map((url) => (
+            {notes.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-12 text-slate-500">
+                <BookOpen size={42} className="mb-3 opacity-30" />
+
+                <p>No notes uploaded yet.</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {notes.map((note) => (
                   <div
-                    key={url}
-                    className="flex items-center gap-3 rounded-xl border border-orbit-border bg-orbit-surface2/40 px-4 py-3 hover:border-orbit-primary/30 transition-colors group"
+                    key={note.note_id}
+                    className="flex items-center gap-4 rounded-xl border border-orbit-border bg-orbit-surface2/30 p-4 transition hover:border-orbit-primary"
                   >
-                    <div className="w-9 h-9 rounded-lg bg-orbit-primary/10 flex items-center justify-center flex-shrink-0">
-                      <FileText size={16} className="text-orbit-primary" />
+                    {/* Icon */}
+
+                    <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-orbit-primary/10">
+                      <FileText size={18} className="text-orbit-primary" />
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-slate-200 truncate">{fileName(url)}</p>
-                      <p className="text-xs text-slate-600 truncate mt-0.5">{url}</p>
+
+                    {/* Content */}
+
+                    <div className="min-w-0 flex-1">
+                      <h3 className="truncate font-semibold text-slate-200">
+                        {note.title}
+                      </h3>
+
+                      <p className="mt-1 text-xs text-slate-500">
+                        {note.description || "No description"}
+                      </p>
+
+                      <p className="mt-2 truncate text-xs text-slate-600">
+                        {note.note_url}
+                      </p>
                     </div>
-                    <div className="flex items-center gap-2 flex-shrink-0">
+
+                    {/* Actions */}
+                    <button
+                      onClick={() => previewNote(note)}
+                      className="flex h-9 w-9 items-center justify-center rounded-lg bg-orbit-surface2 hover:bg-blue-500/20 transition"
+                      title="View"
+                    >
+                      <Eye size={16} className="text-blue-400" />
+                    </button>
+
+                    <div className="flex items-center gap-2">
                       <a
-                        href={url}
+                        href={note.note_url}
                         target="_blank"
-                        rel="noopener noreferrer"
-                        className="w-8 h-8 rounded-lg flex items-center justify-center bg-orbit-surface2 hover:bg-orbit-primary/20 text-slate-400 hover:text-orbit-primary transition-colors"
+                        rel="noreferrer"
+                        className="flex h-9 w-9 items-center justify-center rounded-lg bg-orbit-surface2 transition hover:bg-orbit-primary/20"
                         title="Download"
                       >
-                        <Download size={14} />
+                        <Download size={16} className="text-orbit-primary" />
                       </a>
+
                       <button
-                        onClick={() => copyLink(url)}
-                        className="w-8 h-8 rounded-lg flex items-center justify-center bg-orbit-surface2 hover:bg-orbit-primary/20 text-slate-400 hover:text-orbit-primary transition-colors text-xs font-bold"
-                        title="Copy link"
+                        onClick={() => copyLink(note.note_url)}
+                        className="flex h-9 w-9 items-center justify-center rounded-lg bg-orbit-surface2 transition hover:bg-orbit-primary/20"
+                        title="Copy Link"
                       >
-                        🔗
+                        <Link size={16} className="text-orbit-primary" />
                       </button>
+
                       <button
-                        onClick={() => removeFile(url)}
-                        className="w-8 h-8 rounded-lg flex items-center justify-center bg-orbit-surface2 hover:bg-red-500/20 text-slate-400 hover:text-red-400 transition-colors"
-                        title="Remove from list"
+                        onClick={() => removeFromList(note.note_id)}
+                        className="flex h-9 w-9 items-center justify-center rounded-lg bg-orbit-surface2 transition hover:bg-red-500/20"
+                        title="Remove"
                       >
-                        <X size={14} />
+                        <X size={16} className="text-red-400" />
                       </button>
                     </div>
                   </div>
                 ))}
               </div>
-
-              <p className="text-xs text-slate-600 mt-4">
-                Share the download links above with students. Files are stored on the server permanently.
-              </p>
-            </CardBody>
-          </Card>
-        )}
-
-        {/* Help card */}
-        {uploadedFiles.length === 0 && (
-          <Card>
-            <CardBody>
-              <div className="flex flex-col items-center justify-center gap-3 py-8 text-slate-600">
-                <BookOpen size={40} className="opacity-30" />
-                <p className="text-sm">No notes shared yet. Upload files above to share with students.</p>
-              </div>
-            </CardBody>
-          </Card>
-        )}
+            )}
+          </CardBody>
+        </Card>
       </div>
+      {previewOpen && selectedNote && (
+
+<div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70">
+
+<div className="relative w-[90vw] h-[90vh] rounded-2xl bg-orbit-surface overflow-hidden">
+
+<div className="flex items-center justify-between border-b border-orbit-border px-6 py-4">
+
+<h2 className="font-semibold text-lg">
+
+{selectedNote.title}
+
+</h2>
+
+<button
+onClick={() => {
+
+setPreviewOpen(false);
+
+setSelectedNote(null);
+
+}}
+className="rounded-lg p-2 hover:bg-red-500/20"
+>
+
+<X />
+
+</button>
+
+</div>
+
+<div className="h-[calc(90vh-70px)]">
+
+{/* PDF */}
+
+{selectedNote.note_url
+.toLowerCase()
+.endsWith(".pdf") ? (
+
+<iframe
+src={selectedNote.note_url}
+title="PDF Preview"
+className="h-full w-full"
+/>
+
+) :
+
+/* Image */
+
+(
+<img
+src={selectedNote.note_url}
+alt={selectedNote.title}
+className="h-full w-full object-contain bg-black"
+/>
+)}
+
+</div>
+
+</div>
+
+</div>
+
+)}
     </DashboardShell>
   );
 }
