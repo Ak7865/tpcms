@@ -1,0 +1,312 @@
+import { useEffect, useMemo, useState } from "react";
+import {
+  Search,
+  Loader2,
+  RefreshCw,
+  Building2,
+  XCircle,
+} from "lucide-react";
+
+import DashboardShell from "../../../components/DashboardShell";
+import {
+  Card,
+  CardBody,
+  Badge,
+} from "../../../components/ui";
+
+import { fetchRejectedOrganizations } from "./organizationApi";
+
+export default function RejectedCompanies() {
+
+  const [companies, setCompanies] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState("");
+  const [error, setError] = useState("");
+
+  async function loadCompanies() {
+
+    try {
+
+      setLoading(true);
+      setError("");
+
+      const data =
+        await fetchRejectedOrganizations();
+
+      setCompanies(data || []);
+
+    } catch (err) {
+
+      console.error(err);
+
+      setError(
+        err.message ||
+          "Failed to load rejected companies."
+      );
+
+    } finally {
+
+      setLoading(false);
+
+    }
+
+  }
+
+  useEffect(() => {
+
+    loadCompanies();
+
+  }, []);
+
+  const filtered = useMemo(() => {
+
+    const keyword =
+      search.trim().toLowerCase();
+
+    if (!keyword) return companies;
+
+    return companies.filter((company) =>
+
+      (company.name || "")
+        .toLowerCase()
+        .includes(keyword)
+
+      ||
+
+      (company.email || "")
+        .toLowerCase()
+        .includes(keyword)
+
+      ||
+
+      (company.mobile_no || "")
+        .includes(search.trim())
+
+      ||
+
+      (company.remarks || "")
+        .toLowerCase()
+        .includes(keyword)
+
+    );
+
+  }, [companies, search]);
+
+  return (
+
+    <DashboardShell
+      title="Rejected Companies"
+      subtitle="Organizations rejected by the Super Admin"
+    >
+
+      <div className="flex flex-col gap-3 mb-5 md:flex-row md:justify-between">
+
+        <div className="relative w-full md:w-80">
+
+          <Search
+            size={16}
+            className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500"
+          />
+
+          <input
+            value={search}
+            onChange={(e) =>
+              setSearch(e.target.value)
+            }
+            placeholder="Search company or remark..."
+            className="
+              w-full
+              rounded-xl
+              border
+              border-orbit-border
+              bg-orbit-surface2
+              py-2.5
+              pl-10
+              pr-4
+            "
+          />
+
+        </div>
+
+        <button
+          onClick={loadCompanies}
+          disabled={loading}
+          className="
+            h-[42px]
+            w-[42px]
+            rounded-xl
+            border
+            border-orbit-border
+            bg-orbit-surface2
+            flex
+            items-center
+            justify-center
+          "
+        >
+
+          <RefreshCw
+            size={16}
+            className={
+              loading
+                ? "animate-spin"
+                : ""
+            }
+          />
+
+        </button>
+
+      </div>
+
+      {error ? (
+
+        <Card>
+
+          <CardBody>
+
+            <div className="py-16 text-center text-red-400">
+
+              {error}
+
+            </div>
+
+          </CardBody>
+
+        </Card>
+
+      ) : loading ? (
+
+        <Card>
+
+          <CardBody>
+
+            <div className="flex items-center justify-center gap-2 py-16 text-slate-400">
+
+              <Loader2
+                size={18}
+                className="animate-spin"
+              />
+
+              Loading rejected companies...
+
+            </div>
+
+          </CardBody>
+
+        </Card>
+
+      ) : filtered.length === 0 ? (
+
+        <Card>
+
+          <CardBody>
+
+            <div className="py-16 text-center text-slate-500">
+
+              No rejected companies found.
+
+            </div>
+
+          </CardBody>
+
+        </Card>
+
+      ) : (
+
+        <div className="space-y-4">
+
+          {filtered.map((company) => (
+
+            <Card key={company.user_id}>
+
+              <CardBody>
+
+                <div className="flex gap-4">
+
+                  <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-red-500/10">
+
+                    <Building2
+                      size={22}
+                      className="text-red-400"
+                    />
+
+                  </div>
+
+                  <div className="flex-1">
+
+                    <div className="flex items-start justify-between">
+
+                      <div>
+
+                        <h3 className="font-semibold text-slate-100">
+
+                          {company.name}
+
+                        </h3>
+
+                        <p className="text-sm text-slate-500">
+
+                          {company.email}
+
+                        </p>
+
+                        <p className="text-sm text-slate-500">
+
+                          {company.mobile_no}
+
+                        </p>
+
+                      </div>
+
+                      <Badge variant="destructive">
+
+                        <span className="flex items-center gap-1">
+
+                          <XCircle size={14} />
+
+                          Rejected
+
+                        </span>
+
+                      </Badge>
+
+                    </div>
+
+                    {company.remarks && (
+
+                      <div className="mt-4 rounded-xl border border-red-500/20 bg-red-500/10 p-4">
+
+                        <p className="text-xs font-bold uppercase tracking-wider text-red-400">
+
+                          Rejection Remark
+
+                        </p>
+
+                        <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-slate-200">
+
+                          {company.remarks}
+
+                        </p>
+
+                      </div>
+
+                    )}
+
+                  </div>
+
+                </div>
+
+              </CardBody>
+
+            </Card>
+
+          ))}
+
+        </div>
+
+      )}
+
+    </DashboardShell>
+
+  );
+
+}

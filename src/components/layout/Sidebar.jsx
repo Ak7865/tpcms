@@ -1,0 +1,514 @@
+import { useState } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
+import { motion, AnimatePresence } from "framer-motion";
+import {
+  LayoutDashboard,
+  Users,
+  Building2,
+  GraduationCap,
+  Briefcase,
+  FileText,
+  Settings,
+  Bell,
+  BookOpenCheck,
+  UserRound,
+  FileUp,
+  Award,
+  ChevronDown,
+  LogOut,
+} from "lucide-react";
+import { useSidebar } from "@/hooks/useSidebar";
+import logout from "@/pages/auth/logout";
+
+/* ──────────────────────────── role → dashboard path ──────────────────────────── */
+const dashboardPaths = {
+  "Super Admin": "/super-admin/dashboard",
+  "T&P": "/t&p/dashboard",
+  Company: "/company/dashboard",
+  Student: "/students/dashboard",
+};
+
+/* ──────────────────── role → label → query-param view value ──────────────────── */
+const viewMap = {
+  "Super Admin": {
+    Dashboard: "dashboard",
+    "View Students": "view-students",
+    "Add Students": "add-students",
+    "Edit Students": "edit-students",
+    "Disable Students": "disable-students",
+    "View Company": "view-companies",
+    "Approve Company": "approved-companies",
+    "Reject Company": "rejected-companies",
+    "View Departments": "view-departments",
+    "Add Department": "add-department",
+    "Department Posts": "department-posts",
+    "View Coordinators": "view-coordinators",
+    "Add Coordinator": "add-coordinator",
+    "Edit Coordinator": "edit-coordinator",
+    "T&P Coordinators": "view-coordinators",
+    "Edit Department": "edit-department",
+    // "Create T&P Coordinators": "add-coordinator",
+    "View Placement Activity": "placement-activity",
+    "Post Placement Notification": "post-placement",
+    "Placement Applications": "placement-applications",
+    "View Training Activity": "training-activity",
+    "Post Training": "post-training-admin",
+    "Training Applications": "training-applications",
+    "Share Notes": "share-notes",
+    "Generate Reports": "reports",
+    "Recruitment Partners": "partners",
+    "Settings": "settings",
+  },
+  "T&P": {
+    Dashboard: "dashboard",
+    "View Students": "students",
+    "Disable Students": "disable-students",
+    "Filter Eligible": "eligible",
+    "Department Applications": "applications",
+    "Off Campus Jobs": "notices",
+    "Government Jobs": "gov-notices",
+    "Post Notice": "notices",
+    Settings: "students",
+  },
+  Company: {
+    Dashboard: "dashboard",
+    "Company Profile": "profile",
+    "Post Job": "post-job",
+    "Manage Jobs": "jobs",
+    "Post Training": "post-training",
+    "Manage Training": "training",
+    "Student Applications": "recruitment",
+    "Shortlisted Candidates": "shortlisted",
+    "Schedule Interviews": "interview",
+    Settings: "profile",
+  },
+  Student: {
+    Dashboard: "dashboard",
+    "Browse Placements": "jobs",
+    "Browse Jobs": "jobs",
+    "Training Programs": "training",
+    "My Applications": "applications",
+    "Placement Applications": "applications",
+    "Training Applications": "applications",
+    Notifications: "notifications",
+    "My Profile": "profile",
+    "Academic Records": "academic",
+    "My Documents": "documents",
+    "Interview Letters": "letters",
+  },
+};
+
+/* ───────────────────────── role → menu items definition ───────────────────────── */
+const menuItems = {
+  "Super Admin": [
+    { title: "Dashboard", icon: LayoutDashboard },
+    {
+      title: "Students",
+      icon: Users,
+      submenu: ["View Students", "Add Students", "Disable Students"],
+    },
+    {
+      title: "Company",
+      icon: Building2,
+      submenu: ["View Company", "Approve Company", "Reject Company"],
+    },
+    {
+      title: "Department",
+      icon: GraduationCap,
+      submenu: ["View Departments", "Add Department"],
+    },
+    {
+      title: "Training",
+      icon: BookOpenCheck,
+      submenu: [
+        "View Training Activity",
+        "Post Training",
+        "Training Applications",
+      ],
+    },
+    {
+      title: "Placement",
+      icon: Briefcase,
+      submenu: [
+        "View Placement Activity",
+        "Post Placement Notification",
+        "Placement Applications",
+        "Generate Reports",
+        "Recruitment Partners",
+      ],
+    },
+    { title: "Share Notes", icon: FileText },
+    { title: "Settings", icon: Settings },
+  ],
+
+  "T&P": [
+    { title: "Dashboard", icon: LayoutDashboard },
+    {
+      title: "Students",
+      icon: Users,
+      submenu: ["View Students", "Disable Students", "Filter Eligible"],
+    },
+    {
+      title: "Applications",
+      icon: Briefcase,
+      submenu: ["Department Applications"],
+    },
+    {
+      title: "Notices",
+      icon: Bell,
+      submenu: ["Post Notice", "Off Campus Jobs", "Government Jobs"],
+    },
+    { title: "Settings", icon: Settings },
+  ],
+
+  Company: [
+    { title: "Dashboard", icon: LayoutDashboard },
+    { title: "Company Profile", icon: Building2 },
+    {
+      title: "Jobs",
+      icon: Briefcase,
+      submenu: ["Post Job", "Manage Jobs"],
+    },
+    {
+      title: "Training",
+      icon: BookOpenCheck,
+      submenu: ["Post Training", "Manage Training"],
+    },
+    {
+      title: "Recruitment",
+      icon: Users,
+      submenu: [
+        "Student Applications",
+        "Shortlisted Candidates",
+        "Schedule Interviews",
+      ],
+    },
+    { title: "Settings", icon: Settings },
+  ],
+
+  Student: [
+    { title: "Dashboard", icon: LayoutDashboard },
+    {
+      title: "Placement",
+      icon: Briefcase,
+      submenu: ["Browse Placements", "Placement Applications"],
+    },
+    {
+      title: "Training",
+      icon: BookOpenCheck,
+      submenu: ["Training Programs", "Training Applications"],
+    },
+    { title: "My Applications", icon: FileText },
+    { title: "Notifications", icon: Bell },
+    {
+      title: "Profile",
+      icon: UserRound,
+      submenu: [
+        "My Profile",
+        "Academic Records",
+        "My Documents",
+        "Interview Letters",
+      ],
+    },
+  ],
+};
+
+/* ─────────────────────────── role label colours ─────────────────────────────── */
+const roleBadgeColors = {
+  "Super Admin":
+    "from-red-500/20 to-orange-500/20 text-orange-300 border-orange-500/30",
+  "T&P": "from-blue-500/20 to-cyan-500/20 text-cyan-300 border-cyan-500/30",
+  Company:
+    "from-emerald-500/20 to-green-500/20 text-emerald-300 border-emerald-500/30",
+  Student:
+    "from-violet-500/20 to-purple-500/20 text-purple-300 border-purple-500/30",
+};
+
+/* ═══════════════════════════════════════════════════════════════════════════════ */
+/*  Logo                                                                         */
+/* ═══════════════════════════════════════════════════════════════════════════════ */
+function TPCMSLogo({ collapsed }) {
+  return (
+    <div className="flex items-center gap-3 px-4 py-5 border-b border-orbit-border">
+      <div className="relative flex-shrink-0">
+        <div className="w-8 h-8 rounded-lg bg-orbit-primary flex items-center justify-center glow-primary">
+          <span className="text-white text-xs font-bold">T</span>
+        </div>
+      </div>
+      <AnimatePresence>
+        {!collapsed && (
+          <motion.div
+            initial={{ opacity: 0, width: 0 }}
+            animate={{ opacity: 1, width: "auto" }}
+            exit={{ opacity: 0, width: 0 }}
+            transition={{ duration: 0.2 }}
+            className="overflow-hidden"
+          >
+            <span className="text-slate-100 font-semibold text-lg tracking-tight whitespace-nowrap">
+              TPCMS
+            </span>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════ */
+/*  Single menu item (with optional submenu)                                     */
+/* ═══════════════════════════════════════════════════════════════════════════════ */
+function MenuItem({
+  item,
+  collapsed,
+  role,
+  activeView,
+  openMenu,
+  toggleMenu,
+  navigateTo,
+  onNavClick,
+}) {
+  const Icon = item.icon;
+  const hasSubmenu = item.submenu && item.submenu.length > 0;
+  const isOpen = openMenu === item.title;
+
+  // Check if this item or any submenu child is currently active
+  const isActive = !hasSubmenu && activeView === viewMap[role]?.[item.title];
+  const hasActiveChild =
+    hasSubmenu &&
+    item.submenu.some((sub) => activeView === viewMap[role]?.[sub]);
+
+  const handleClick = () => {
+    if (hasSubmenu) {
+      toggleMenu(item.title);
+    } else {
+      navigateTo(item.title);
+      onNavClick();
+    }
+  };
+
+  return (
+    <div>
+      {/* Parent item */}
+      <button
+        onClick={handleClick}
+        className={
+          "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-150 group relative " +
+          (isActive || hasActiveChild
+            ? "text-slate-100 bg-orbit-primary/15 shadow-sm"
+            : "text-slate-400 hover:text-slate-200 hover:bg-white/5")
+        }
+      >
+        {/* Active indicator bar */}
+        {(isActive || hasActiveChild) && (
+          <motion.div
+            layoutId="nav-indicator"
+            className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-5 bg-orbit-primary rounded-r-full"
+          />
+        )}
+
+        <Icon size={20} className="flex-shrink-0" />
+
+        <AnimatePresence>
+          {!collapsed && (
+            <motion.span
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="truncate flex-1 text-left"
+            >
+              {item.title}
+            </motion.span>
+          )}
+        </AnimatePresence>
+
+        {/* Chevron for expandable items */}
+        {!collapsed && hasSubmenu && (
+          <motion.div
+            animate={{ rotate: isOpen ? 180 : 0 }}
+            transition={{ duration: 0.2 }}
+            className="flex-shrink-0"
+          >
+            <ChevronDown size={14} className="text-slate-500" />
+          </motion.div>
+        )}
+      </button>
+
+      {/* Submenu */}
+      <AnimatePresence>
+        {!collapsed && hasSubmenu && isOpen && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.2, ease: "easeInOut" }}
+            className="overflow-hidden"
+          >
+            <div className="ml-5 mt-0.5 pl-3 border-l border-orbit-border/50 space-y-0.5">
+              {item.submenu.map((sub) => {
+                const subActive = activeView === viewMap[role]?.[sub];
+                return (
+                  <button
+                    key={sub}
+                    onClick={() => {
+                      navigateTo(sub);
+                      onNavClick();
+                    }}
+                    className={
+                      "w-full text-left flex items-center gap-2 px-3 py-2 rounded-md text-[13px] transition-all duration-150 " +
+                      (subActive
+                        ? "text-slate-100 bg-orbit-primary/10 font-medium"
+                        : "text-slate-500 hover:text-slate-300 hover:bg-white/5")
+                    }
+                  >
+                    <div
+                      className={
+                        "w-1.5 h-1.5 rounded-full flex-shrink-0 transition-colors duration-150 " +
+                        (subActive
+                          ? "bg-orbit-primary"
+                          : "bg-slate-600 group-hover:bg-slate-500")
+                      }
+                    />
+                    {sub}
+                  </button>
+                );
+              })}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════ */
+/*  Sidebar                                                                      */
+/* ═══════════════════════════════════════════════════════════════════════════════ */
+export default function Sidebar({ role = "Super Admin" }) {
+  const [openMenu, setOpenMenu] = useState(null);
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { collapsed, isMobile, mobileOpen, closeMobile } = useSidebar();
+
+  // Get auth user from sessionStorage
+  const auth = JSON.parse(localStorage.getItem("auth_user") || "{}");
+  const user = auth?.user || {};
+
+  // Derive the current ?view= value from URL
+  const searchParams = new URLSearchParams(location.search);
+  const activeView = searchParams.get("view");
+
+  const effectiveCollapsed = collapsed && !isMobile;
+
+  const navigateTo = (label) => {
+    const view = viewMap[role]?.[label];
+    if (view) navigate(`${dashboardPaths[role]}?view=${view}`);
+  };
+
+  const toggleMenu = (menu) => {
+    setOpenMenu(openMenu === menu ? null : menu);
+  };
+
+  const onNavClick = () => {
+    if (isMobile) closeMobile();
+  };
+
+  const items = menuItems[role] || [];
+
+  return (
+    <motion.aside
+      animate={{
+        width: isMobile ? 256 : effectiveCollapsed ? 72 : 256,
+        x: isMobile && !mobileOpen ? "-100%" : 0,
+      }}
+      transition={{ duration: 0.25, ease: "easeInOut" }}
+      className="fixed left-0 top-0 h-screen bg-orbit-surface border-r border-orbit-border flex flex-col z-40 overflow-hidden"
+    >
+      <TPCMSLogo collapsed={effectiveCollapsed} />
+
+      {/* Role badge */}
+      <AnimatePresence>
+        {!effectiveCollapsed && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.2 }}
+            className="px-4 pt-3 pb-1"
+          >
+            <div
+              className={
+                "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border bg-gradient-to-r " +
+                (roleBadgeColors[role] || "text-slate-400 border-slate-600")
+              }
+            >
+              <div className="w-1.5 h-1.5 rounded-full bg-current animate-pulse" />
+              {role}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Navigation */}
+      <nav className="flex-1 overflow-y-auto overflow-x-hidden py-3 px-3 space-y-0.5 scrollbar-thin">
+        {items.map((item) => (
+          <MenuItem
+            key={item.title}
+            item={item}
+            collapsed={effectiveCollapsed}
+            role={role}
+            activeView={activeView}
+            openMenu={openMenu}
+            toggleMenu={toggleMenu}
+            navigateTo={navigateTo}
+            onNavClick={onNavClick}
+          />
+        ))}
+      </nav>
+
+      {/* Bottom user section */}
+      <div className="border-t border-orbit-border p-3">
+        <div
+          className={
+            "flex items-center gap-3 p-2 rounded-lg hover:bg-white/5 cursor-pointer transition-colors " +
+            (effectiveCollapsed ? "justify-center" : "")
+          }
+        >
+          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-orbit-primary to-orbit-accent flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
+            {(user?.name || role).charAt(0).toUpperCase()}
+          </div>
+          <AnimatePresence>
+            {!effectiveCollapsed && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="flex-1 min-w-0"
+              >
+                <p className="text-sm font-medium text-slate-200 truncate">
+                  {user?.name?.toUpperCase() || user?.role || "User"}
+                </p>
+                <p className="text-xs text-slate-500 truncate">
+                  {user?.email || ""}
+                </p>
+              </motion.div>
+            )}
+          </AnimatePresence>
+          <AnimatePresence>
+            {!effectiveCollapsed && (
+              <motion.button
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                onClick={() => logout(navigate)}
+                className="text-slate-500 hover:text-red-400 transition-colors flex-shrink-0"
+                title="Logout"
+              >
+                <LogOut size={16} />
+              </motion.button>
+            )}
+          </AnimatePresence>
+        </div>
+      </div>
+    </motion.aside>
+  );
+}
