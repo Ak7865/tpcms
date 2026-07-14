@@ -6,7 +6,7 @@ import SignInPage  from './pages/auth/SignInPage';
 import { SignUpPage } from './pages/auth/SignUpPage';
 import ForgotPasswordPage from './pages/auth/ForgotPasswordPage';
 import SuperAdminDashboard from './pages/superadmin/SuperAdminDashboard';
-import AdminDashboard from './pages/admin/AdminDashboard';
+import AdminDashboard from './pages/admin/CoordinatorDashboard';
 import CompanyDashboard from './pages/company/CompanyDashboard';
 import StudentDashboard from './pages/student/StudentDashboard';
 import CompanyProfileSetup from './pages/company/CompanyProfileSetup';
@@ -51,9 +51,9 @@ export default function App() {
             }
           />
           <Route
-            path="/t&p/dashboard"
+            path="/coordinator/dashboard"
             element={
-              <AppRoute allowedRoles={['T&P']}>
+              <AppRoute allowedRoles={['Coordinator']}>
                 <AdminDashboard />
               </AppRoute>
             }

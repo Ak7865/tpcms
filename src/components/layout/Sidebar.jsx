@@ -23,7 +23,7 @@ import logout from "@/pages/auth/logout";
 /* ──────────────────────────── role → dashboard path ──────────────────────────── */
 const dashboardPaths = {
   "Super Admin": "/super-admin/dashboard",
-  "T&P": "/t&p/dashboard",
+  "T&P": "/coordinator/dashboard",
   Company: "/company/dashboard",
   Student: "/students/dashboard",
 };
@@ -59,17 +59,26 @@ const viewMap = {
     "Recruitment Partners": "partners",
     "Settings": "settings",
   },
-  "T&P": {
-    Dashboard: "dashboard",
-    "View Students": "students",
-    "Disable Students": "disable-students",
-    "Filter Eligible": "eligible",
-    "Department Applications": "applications",
-    "Off Campus Jobs": "notices",
-    "Government Jobs": "gov-notices",
-    "Post Notice": "notices",
-    Settings: "students",
-  },
+  Coordinator: {
+  Dashboard: "dashboard",
+
+  "Students": "students",
+  "Student Details": "student-details",
+
+  "Trainings": "view-trainings",
+  "Training Details": "training-details",
+  "Training Applications": "training-applications",
+  "Post Training": "post-training",
+
+  "Placements": "view-placements",
+  "Placement Details": "placement-details",
+  "Placement Applications": "placement-applications",
+  "Post Placement": "post-placement",
+
+  "Shared Notes": "shared-notes",
+
+  "Change Password": "change-password",
+},
   Company: {
     Dashboard: "dashboard",
     "Company Profile": "profile",
@@ -141,25 +150,53 @@ const menuItems = {
     { title: "Settings", icon: Settings },
   ],
 
-  "T&P": [
-    { title: "Dashboard", icon: LayoutDashboard },
-    {
-      title: "Students",
-      icon: Users,
-      submenu: ["View Students", "Disable Students", "Filter Eligible"],
-    },
-    {
-      title: "Applications",
-      icon: Briefcase,
-      submenu: ["Department Applications"],
-    },
-    {
-      title: "Notices",
-      icon: Bell,
-      submenu: ["Post Notice", "Off Campus Jobs", "Government Jobs"],
-    },
-    { title: "Settings", icon: Settings },
-  ],
+  Coordinator: [
+  {
+    title: "Dashboard",
+    icon: LayoutDashboard,
+  },
+
+  {
+    title: "Students",
+    icon: Users,
+    submenu: [
+      "Students",
+      "Student Details",
+    ],
+  },
+
+  {
+    title: "Training",
+    icon: BookOpenCheck,
+    submenu: [
+      "Trainings",
+      "Training Details",
+      "Training Applications",
+      "Post Training",
+    ],
+  },
+
+  {
+    title: "Placement",
+    icon: Briefcase,
+    submenu: [
+      "Placements",
+      "Placement Details",
+      "Placement Applications",
+      "Post Placement",
+    ],
+  },
+
+  {
+    title: "Shared Notes",
+    icon: FileText,
+  },
+
+  {
+    title: "Change Password",
+    icon: Settings,
+  },
+],
 
   Company: [
     { title: "Dashboard", icon: LayoutDashboard },
