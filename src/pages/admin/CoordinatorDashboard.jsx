@@ -138,81 +138,20 @@ function Overview() {
 export default function CoordinatorDashboard() {
   const [searchParams] = useSearchParams();
 
-  const view = searchParams.get("view") || "dashboard";
+  const view = searchParams.get("view");
 
-  const ViewComponent =
-    viewComponents[view] || Dashboard;
+  const ViewComponent = (view && view !== "dashboard") ? viewComponents[view] : null;
 
-  const pageTitles = {
-    dashboard: "Dashboard",
+  if (ViewComponent) {
+    return <ViewComponent />;
+  }
 
-    students: "Students",
-    "student-details": "Student Details",
-
-    "view-trainings": "Training",
-    "training-details": "Training Details",
-    "training-applications": "Training Applications",
-    "post-training": "Post Training",
-
-    "view-placements": "Placement",
-    "placement-details": "Placement Details",
-    "placement-applications": "Placement Applications",
-    "post-placement": "Post Placement",
-
-    "shared-notes": "Shared Notes",
-
-    "change-password": "Change Password",
-  };
-
-  const pageSubtitles = {
-    dashboard:
-      "Department Training & Placement Dashboard.",
-
-    students:
-      "View students of your department.",
-
-    "student-details":
-      "Student academic information.",
-
-    "view-trainings":
-      "Training opportunities.",
-
-    "training-details":
-      "Training information.",
-
-    "training-applications":
-      "Approve or reject student training applications.",
-
-    "post-training":
-      "Create a new training opportunity.",
-
-    "view-placements":
-      "Placement opportunities.",
-
-    "placement-details":
-      "Placement information.",
-
-    "placement-applications":
-      "Approve or reject placement applications.",
-
-    "post-placement":
-      "Create a new placement opportunity.",
-
-    "shared-notes":
-      "Upload and share study materials.",
-
-    "change-password":
-      "Update your account password.",
-  };
-    return (
+  return (
     <DashboardShell
-      title={pageTitles[view] || "Coordinator Dashboard"}
-      subtitle={
-        pageSubtitles[view] ||
-        "Manage department training and placement activities."
-      }
+      title="Coordinator Dashboard"
+      subtitle="Manage department training and placement activities."
     >
-      <ViewComponent />
+      <Overview />
     </DashboardShell>
   );
 }

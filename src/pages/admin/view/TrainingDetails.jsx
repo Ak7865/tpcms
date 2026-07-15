@@ -31,6 +31,9 @@ export default function TrainingDetails() {
   useEffect(() => {
     if (trainingId) {
       loadTraining();
+    } else {
+      setError("No training ID specified.");
+      setLoading(false);
     }
   }, [trainingId]);
 
@@ -40,25 +43,24 @@ export default function TrainingDetails() {
       setError("");
 
       const res = await api.get(`/trainings/${trainingId}`);
+      const raw = res?.data?.data || res?.data || null;
 
-      setTraining(
-        res?.data?.data ||
-        res?.data ||
-        null
-      );
-
+      if (raw) {
+        if (raw.user_table && !raw.creator_table) {
+          raw.creator_table = raw.user_table;
+        }
+        setTraining(raw);
+      } else {
+        setTraining(null);
+      }
     } catch (err) {
-
       setError(
         err?.response?.data?.message ||
         err.message ||
         "Unable to fetch training."
       );
-
     } finally {
-
       setLoading(false);
-
     }
   }
 

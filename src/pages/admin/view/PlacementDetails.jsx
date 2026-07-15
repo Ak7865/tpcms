@@ -35,6 +35,9 @@ export default function PlacementDetails() {
   useEffect(() => {
     if (placementId) {
       loadPlacement();
+    } else {
+      setError("No placement ID specified.");
+      setLoading(false);
     }
   }, [placementId]);
 
@@ -44,25 +47,26 @@ export default function PlacementDetails() {
       setError("");
 
       const res = await api.get(`/placements/${placementId}`);
+      const raw = res?.data?.data || res?.data || null;
 
-      setPlacement(
-        res?.data?.data ||
-        res?.data ||
-        null
-      );
-
+      if (raw) {
+        if (raw.user_table && !raw.organization_table) {
+          raw.organization_table = {
+            user_table: raw.user_table
+          };
+        }
+        setPlacement(raw);
+      } else {
+        setPlacement(null);
+      }
     } catch (err) {
-
       setError(
         err?.response?.data?.message ||
         err.message ||
         "Unable to fetch placement."
       );
-
     } finally {
-
       setLoading(false);
-
     }
   }
 

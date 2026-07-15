@@ -114,8 +114,8 @@ export default function CompanyProfile() {
       const selectedSector = sectors.find((s) => s.sector_name === form.industry)
       const sectorId = selectedSector ? selectedSector.sector_id : null
 
-      // Update backend database user_table & organization_table values
-      await api.put('/users/profile', {
+      // Update backend database user_table & organization_table values via specific organization route
+      await api.put(`/organizations/${user.user_id}`, {
         name: form.name,
         email: form.email,
         mobile_no: form.mobile_no,

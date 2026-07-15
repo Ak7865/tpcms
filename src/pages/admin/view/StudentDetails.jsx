@@ -37,6 +37,9 @@ export default function StudentDetails() {
   useEffect(() => {
     if (studentId) {
       loadStudent();
+    } else {
+      setError("No student ID specified.");
+      setLoading(false);
     }
   }, [studentId]);
 
@@ -46,25 +49,61 @@ export default function StudentDetails() {
       setError("");
 
       const res = await api.get(`/students/${studentId}`);
+      const raw = res?.data?.data || res?.data || null;
 
-      setStudent(
-        res?.data?.data ||
-        res?.data ||
-        null
-      );
-
+      if (raw) {
+        const mapped = {
+          ...raw,
+          name: raw.name,
+          roll_no: raw.roll_no,
+          cgpa: raw.cgpa,
+          is_graduate: raw.is_graduate || false,
+          resume_url: raw.resume_url,
+          image_url: raw.image_url,
+          age: raw.age,
+          user_table: {
+            user_id: studentId,
+            name: raw.name,
+            email: raw.email,
+            mobile_no: raw.mobile_no,
+            created_on: raw.created_on,
+            updated_on: raw.updated_on,
+            last_login: raw.last_login,
+          },
+          department_table: {
+            department_name: raw.department,
+          },
+          semester_table: {
+            semester_name: raw.semester ? `Semester ${raw.semester}` : '',
+          },
+          gender_table: {
+            gender: raw.gender,
+          },
+          category_table: {
+            category: raw.category,
+          },
+          division_table_student_table_tenth_division_idTodivision_table: {
+            division: raw.tenth_division,
+          },
+          division_table_student_table_twelfth_division_idTodivision_table: {
+            division: raw.twelfth_division,
+          },
+          student_skill_table: Array.isArray(raw.skill)
+            ? raw.skill.map((skName) => ({ skill_table: { skill: skName } }))
+            : [],
+        };
+        setStudent(mapped);
+      } else {
+        setStudent(null);
+      }
     } catch (err) {
-
       setError(
         err?.response?.data?.message ||
         err.message ||
         "Unable to load student."
       );
-
     } finally {
-
       setLoading(false);
-
     }
   }
 
