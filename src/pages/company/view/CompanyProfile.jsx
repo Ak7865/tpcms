@@ -90,6 +90,18 @@ export default function CompanyProfile() {
         banner_url: form.banner_url || extras.banner_url || '',
       }
 
+      // Find sector_id matching form.industry
+      const selectedSector = sectors.find((s) => s.sector_name === form.industry)
+      const sectorId = selectedSector ? selectedSector.sector_id : null
+
+      // Update backend database user_table & organization_table values via specific organization route
+      await api.put(`/organizations/${user.user_id}`, {
+        name: form.name,
+        email: form.email,
+        mobile_no: form.mobile_no || null,
+        sector_id: sectorId,
+      })
+
       // Save extras to localStorage
       localStorage.setItem(extrasKey, JSON.stringify(updatedExtras))
 
@@ -98,7 +110,7 @@ export default function CompanyProfile() {
         ...user,
         name: form.name,
         email: form.email,
-        mobile_no: form.mobile_no,
+        mobile_no: form.mobile_no || null,
         address: form.address,
       }
 
@@ -110,17 +122,7 @@ export default function CompanyProfile() {
         })
       )
 
-      // Find sector_id matching form.industry
-      const selectedSector = sectors.find((s) => s.sector_name === form.industry)
-      const sectorId = selectedSector ? selectedSector.sector_id : null
-
-      // Update backend database user_table & organization_table values via specific organization route
-      await api.put(`/organizations/${user.user_id}`, {
-        name: form.name,
-        email: form.email,
-        mobile_no: form.mobile_no,
-        sector_id: sectorId,
-      })
+      window.dispatchEvent(new Event('auth_user_updated'))
 
       setProfile(form)
       setSuccess('Profile updated successfully')

@@ -2,7 +2,8 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Mail, ArrowLeft, ArrowRight } from 'lucide-react';
-import {Button,Input} from './../../components/ui';
+import { Button, Input } from './../../components/ui';
+import api from './../../services/api';
 
 export default function ForgotPasswordPage() {
   const [sent, setSent] = useState(false)
@@ -16,9 +17,15 @@ export default function ForgotPasswordPage() {
     try {
       const formData = new FormData(e.target)
       const email = formData.get('email')
+      
+      await api.post('/users/forgot-password', {
+        email,
+        redirect: window.location.origin,
+      })
+
       setSent(true)
     } catch (err) {
-      setError(err.message)
+      setError(err?.response?.data?.message || err.message || 'Unable to request reset link.')
     } finally {
       setLoading(false)
     }

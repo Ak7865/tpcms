@@ -8,6 +8,9 @@ import {
   ExternalLink,
   GraduationCap,
   Loader2,
+  SlidersHorizontal,
+  X,
+  IndianRupee,
 } from "lucide-react";
 
 function getRows(res) {
@@ -28,11 +31,24 @@ export default function JobsView() {
   const [jobs, setJobs] = useState([]);
   const [applications, setApplications] = useState([]);
   const [divisions, setDivisions] = useState([]);
+  const [sectors, setSectors] = useState([]);
+  const [semesters, setSemesters] = useState([]);
+  const [departments, setDepartments] = useState([]);
+  
   const [loading, setLoading] = useState(true);
   const [applyingId, setApplyingId] = useState(null);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   const [query, setQuery] = useState("");
+
+  // Advanced Filtering States
+  const [showFilters, setShowFilters] = useState(false);
+  const [filterSector, setFilterSector] = useState("");
+  const [filterSemester, setFilterSemester] = useState("");
+  const [filterDept, setFilterDept] = useState("");
+  const [filterCgpa, setFilterCgpa] = useState("");
+  const [filterSalary, setFilterSalary] = useState("");
+  const [filterStatus, setFilterStatus] = useState("all");
 
   useEffect(() => {
     let cancelled = false;
@@ -41,15 +57,21 @@ export default function JobsView() {
       try {
         setLoading(true);
         setError("");
-        const [placementRes, appRes, divisionsRes] = await Promise.all([
+        const [placementRes, appRes, divisionsRes, sectorsRes, semestersRes, deptsRes] = await Promise.all([
           api.get("/placements"),
           api.get("/placement-applications"),
           api.get("/masters/divisions").catch(() => null),
+          api.get("/masters/sectors").catch(() => null),
+          api.get("/semesters").catch(() => null),
+          api.get("/departments").catch(() => null),
         ]);
         if (!cancelled) {
           setJobs(getRows(placementRes));
           setApplications(getRows(appRes));
           setDivisions(divisionsRes?.data?.data ?? divisionsRes?.data ?? divisionsRes ?? []);
+          setSectors(sectorsRes?.data?.data ?? sectorsRes?.data ?? []);
+          setSemesters(semestersRes?.data || []);
+          setDepartments(deptsRes?.data || []);
         }
       } catch (err) {
         if (!cancelled) setError(err.message || "Failed to load placements.");
@@ -72,14 +94,68 @@ export default function JobsView() {
   const filtered = useMemo(() => {
     const term = query.trim().toLowerCase();
     return jobs.filter((job) => {
-      const title = job.title || "";
-      const org = job.organization_table?.name || job.organization?.name || "";
-      return (
-        title.toLowerCase().includes(term) ||
-        org.toLowerCase().includes(term)
-      );
+      // 1. Text Search
+      const title = (job.title || "").toLowerCase();
+      const desc = (job.description || "").toLowerCase();
+      const orgName = (job.user_table?.name || job.organization_table?.name || "").toLowerCase();
+      const sectorName = (job.user_table?.organization_table?.sector_table?.sector_name || "").toLowerCase();
+      const sectorShort = (job.user_table?.organization_table?.sector_table?.sector_shorthand || "").toLowerCase();
+      
+      const textMatches = 
+        title.includes(term) ||
+        desc.includes(term) ||
+        orgName.includes(term) ||
+        sectorName.includes(term) ||
+        sectorShort.includes(term);
+
+      if (!textMatches) return false;
+
+      // 2. Sector Filter
+      if (filterSector) {
+        const jobSectorId = job.user_table?.organization_table?.sector_table?.sector_id;
+        if (Number(jobSectorId) !== Number(filterSector)) return false;
+      }
+
+      // 3. Semester Filter
+      if (filterSemester) {
+        const allowedSems = job.placement_semester_table || [];
+        if (allowedSems.length > 0) {
+          const semIds = allowedSems.map(s => s.semester_id);
+          if (!semIds.includes(Number(filterSemester))) return false;
+        }
+      }
+
+      // 4. Department Filter
+      if (filterDept) {
+        const allowedDepts = job.placement_department_table || [];
+        if (allowedDepts.length > 0) {
+          const deptIds = allowedDepts.map(d => d.department_id);
+          if (!deptIds.includes(Number(filterDept))) return false;
+        }
+      }
+
+      // 5. CGPA Filter
+      if (filterCgpa) {
+        const minCgpa = Number(job.min_cgpa || 0);
+        if (minCgpa > Number(filterCgpa)) return false;
+      }
+
+      // 6. Salary Filter
+      if (filterSalary) {
+        const maxSalary = Number(job.salary_upper || job.salary_lower || 0);
+        if (maxSalary > 0 && maxSalary < Number(filterSalary)) return false;
+      }
+
+      // 7. Status Filter
+      if (filterStatus !== "all") {
+        const hasApplied = appliedIds.has(job.placement_id);
+        if (filterStatus === "applied" && !hasApplied) return false;
+        if (filterStatus === "unapplied" && hasApplied) return false;
+      }
+
+      return true;
     });
-  }, [jobs, query]);
+  }, [jobs, query, filterSector, filterSemester, filterDept, filterCgpa, filterSalary, filterStatus, appliedIds]);
 
   async function applyToPlacement(placementId) {
     try {
@@ -128,16 +204,148 @@ export default function JobsView() {
         </div>
       )}
 
-      <div className="flex items-center gap-2 bg-orbit-surface2 border border-orbit-border rounded-lg px-3 py-2">
-        <Search className="w-4 h-4 text-slate-500" />
-        <input
-          type="text"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder="Search placements..."
-          className="bg-transparent text-sm text-slate-200 outline-none w-full"
-        />
+      <div className="flex gap-2">
+        <div className="flex-1 flex items-center gap-2 bg-orbit-surface2 border border-orbit-border rounded-lg px-3 py-2">
+          <Search className="w-4.5 h-4.5 text-slate-500" />
+          <input
+            type="text"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search placements by title, company, description, or sector..."
+            className="bg-transparent text-sm text-slate-200 outline-none w-full"
+          />
+        </div>
+        <button
+          type="button"
+          onClick={() => setShowFilters(!showFilters)}
+          className={`flex items-center gap-1.5 px-4 py-2 text-xs font-semibold rounded-lg border transition-all ${
+            showFilters || filterSector || filterSemester || filterDept || filterCgpa || filterSalary || filterStatus !== 'all'
+              ? 'border-orbit-primary/45 bg-orbit-primary/10 text-orbit-primary-light'
+              : 'border-orbit-border bg-orbit-surface2 hover:bg-white/3 text-slate-400'
+          }`}
+        >
+          <SlidersHorizontal size={14} />
+          <span>Filters</span>
+          {(filterSector || filterSemester || filterDept || filterCgpa || filterSalary || filterStatus !== 'all') && (
+            <span className="w-2 h-2 rounded-full bg-orbit-accent animate-pulse" />
+          )}
+        </button>
       </div>
+
+      {showFilters && (
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="p-5 rounded-xl border border-orbit-border bg-orbit-surface2/50 space-y-4"
+        >
+          <div className="flex items-center justify-between border-b border-orbit-border pb-2">
+            <h3 className="text-xs font-bold text-slate-300 uppercase tracking-wider">Advanced Filters</h3>
+            <button
+              type="button"
+              onClick={() => {
+                setFilterSector("");
+                setFilterSemester("");
+                setFilterDept("");
+                setFilterCgpa("");
+                setFilterSalary("");
+                setFilterStatus("all");
+              }}
+              className="text-[11px] text-orbit-primary-light hover:text-orbit-accent transition-colors font-medium"
+            >
+              Reset Filters
+            </button>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+            {/* Sector */}
+            <div>
+              <label className="mb-1 block text-[10px] uppercase font-bold tracking-wider text-slate-500">Sector</label>
+              <select
+                value={filterSector}
+                onChange={(e) => setFilterSector(e.target.value)}
+                className="w-full rounded-lg border border-orbit-border bg-orbit-surface px-3 py-2 text-xs text-slate-300 outline-none"
+              >
+                <option value="">All Sectors</option>
+                {sectors.map((sec) => (
+                  <option key={sec.sector_id} value={sec.sector_id}>{sec.sector_name}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* Semester */}
+            <div>
+              <label className="mb-1 block text-[10px] uppercase font-bold tracking-wider text-slate-500">Semester</label>
+              <select
+                value={filterSemester}
+                onChange={(e) => setFilterSemester(e.target.value)}
+                className="w-full rounded-lg border border-orbit-border bg-orbit-surface px-3 py-2 text-xs text-slate-300 outline-none"
+              >
+                <option value="">All Semesters</option>
+                {semesters.map((sem) => (
+                  <option key={sem.semester_id} value={sem.semester_id}>Semester {sem.semester}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* Department */}
+            <div>
+              <label className="mb-1 block text-[10px] uppercase font-bold tracking-wider text-slate-500">Department</label>
+              <select
+                value={filterDept}
+                onChange={(e) => setFilterDept(e.target.value)}
+                className="w-full rounded-lg border border-orbit-border bg-orbit-surface px-3 py-2 text-xs text-slate-300 outline-none"
+              >
+                <option value="">All Departments</option>
+                {departments.map((dept) => (
+                  <option key={dept.department_id} value={dept.department_id}>{dept.department_name}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* Status */}
+            <div>
+              <label className="mb-1 block text-[10px] uppercase font-bold tracking-wider text-slate-500">Application Status</label>
+              <select
+                value={filterStatus}
+                onChange={(e) => setFilterStatus(e.target.value)}
+                className="w-full rounded-lg border border-orbit-border bg-orbit-surface px-3 py-2 text-xs text-slate-300 outline-none"
+              >
+                <option value="all">All</option>
+                <option value="applied">Applied Only</option>
+                <option value="unapplied">Not Applied Only</option>
+              </select>
+            </div>
+
+            {/* Max Min CGPA */}
+            <div>
+              <label className="mb-1 block text-[10px] uppercase font-bold tracking-wider text-slate-500">Your CGPA (Show drives up to)</label>
+              <input
+                type="number"
+                step="0.01"
+                min="0"
+                max="10"
+                value={filterCgpa}
+                onChange={(e) => setFilterCgpa(e.target.value)}
+                placeholder="e.g. 8.50"
+                className="w-full rounded-lg border border-orbit-border bg-orbit-surface px-3 py-2 text-xs text-slate-300 outline-none"
+              />
+            </div>
+
+            {/* Min Salary */}
+            <div>
+              <label className="mb-1 block text-[10px] uppercase font-bold tracking-wider text-slate-500">Min Package (LPA)</label>
+              <input
+                type="number"
+                min="0"
+                value={filterSalary}
+                onChange={(e) => setFilterSalary(e.target.value)}
+                placeholder="e.g. 6"
+                className="w-full rounded-lg border border-orbit-border bg-orbit-surface px-3 py-2 text-xs text-slate-300 outline-none"
+              />
+            </div>
+          </div>
+        </motion.div>
+      )}
 
       <div className="space-y-3">
         {filtered.length === 0 ? (
@@ -173,11 +381,19 @@ export default function JobsView() {
                         </p>
                       )}
                       <div className="flex flex-wrap items-center gap-3 mt-2">
-                        <span className="text-xs text-slate-500 flex items-center gap-1">
-                          <Building2 className="w-3 h-3" />
+                        <span className="text-xs text-slate-300 font-medium flex items-center gap-1.5">
+                          <Building2 className="w-3.5 h-3.5 text-orbit-primary-light" />
                           {job.user_table?.name || job.organization_table?.name || "Placement"}
                           {job.user_table?.organization_table?.sector_table?.sector_name && (
-                            <span className="text-slate-600 text-[11px] ml-1">({job.user_table.organization_table.sector_table.sector_name})</span>
+                            <span className="text-slate-500 font-normal flex items-center gap-1.5">
+                              <span>•</span>
+                              <span>{job.user_table.organization_table.sector_table.sector_name}</span>
+                              {job.user_table.organization_table.sector_table.sector_shorthand && (
+                                <span className="text-[10px] bg-orbit-primary/20 text-orbit-primary-light px-1.5 py-0.5 rounded font-bold uppercase tracking-wider">
+                                  {job.user_table.organization_table.sector_table.sector_shorthand}
+                                </span>
+                              )}
+                            </span>
                           )}
                         </span>
                         <span className="text-xs text-slate-500 flex items-center gap-1">

@@ -55,6 +55,7 @@ export function saveAuthUser(userPatch) {
       token: nextUser.auth_token || auth.token,
     })
   )
+  window.dispatchEvent(new Event('auth_user_updated'))
   return nextUser
 }
 

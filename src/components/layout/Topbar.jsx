@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import { Menu, Search, Bell, Sun, Moon, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -27,9 +27,24 @@ export function Topbar() {
   const [showSearch, setShowSearch] = useState(false)
   const unreadCount = notifications.filter(n => n.unread).length
 
-  // Get auth user for avatar
-  const auth = JSON.parse(localStorage.getItem('auth_user') || '{}')
-  const user = auth?.user || {}
+  // Get auth user reactively for avatar
+  const [user, setUser] = useState(() => {
+    const auth = JSON.parse(localStorage.getItem('auth_user') || '{}')
+    return auth?.user || {}
+  })
+
+  useEffect(() => {
+    const handleUpdate = () => {
+      const auth = JSON.parse(localStorage.getItem('auth_user') || '{}')
+      setUser(auth?.user || {})
+    }
+    window.addEventListener('auth_user_updated', handleUpdate)
+    window.addEventListener('storage', handleUpdate)
+    return () => {
+      window.removeEventListener('auth_user_updated', handleUpdate)
+      window.removeEventListener('storage', handleUpdate)
+    }
+  }, [])
 
   const pageTitle = routeLabels[location.pathname] ?? 'Dashboard'
 

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -421,9 +421,24 @@ export default function Sidebar({ role = "Super Admin" }) {
   const location = useLocation();
   const { collapsed, isMobile, mobileOpen, closeMobile } = useSidebar();
 
-  // Get auth user from sessionStorage
-  const auth = JSON.parse(localStorage.getItem("auth_user") || "{}");
-  const user = auth?.user || {};
+  // Get auth user reactively
+  const [user, setUser] = useState(() => {
+    const auth = JSON.parse(localStorage.getItem("auth_user") || "{}");
+    return auth?.user || {};
+  });
+
+  useEffect(() => {
+    const handleUpdate = () => {
+      const auth = JSON.parse(localStorage.getItem("auth_user") || "{}");
+      setUser(auth?.user || {});
+    };
+    window.addEventListener("auth_user_updated", handleUpdate);
+    window.addEventListener("storage", handleUpdate);
+    return () => {
+      window.removeEventListener("auth_user_updated", handleUpdate);
+      window.removeEventListener("storage", handleUpdate);
+    };
+  }, []);
 
   // Derive the current ?view= value from URL
   const searchParams = new URLSearchParams(location.search);

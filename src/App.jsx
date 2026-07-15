@@ -5,6 +5,7 @@ import { LandingPage } from './pages/landing/LandingPage';
 import SignInPage  from './pages/auth/SignInPage';
 import { SignUpPage } from './pages/auth/SignUpPage';
 import ForgotPasswordPage from './pages/auth/ForgotPasswordPage';
+import ResetPasswordPage from './pages/auth/ResetPasswordPage';
 import SuperAdminDashboard from './pages/superadmin/SuperAdminDashboard';
 import AdminDashboard from './pages/admin/CoordinatorDashboard';
 import CompanyDashboard from './pages/company/CompanyDashboard';
@@ -22,6 +23,7 @@ export default function App() {
       <Route path="/sign-in" element={<SignInPage />} />
       <Route path="/sign-up" element={<SignUpPage />} />
       <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+      <Route path="/reset-password" element={<ResetPasswordPage />} />
 
       {/* Protected dashboard routes — with sidebar layout */}
       <Route element={<ProtectedRoute />}>

@@ -173,9 +173,22 @@ export default function DashboardOverview() {
                 <h3 className="text-sm font-medium text-slate-200">
                   {job.title || "Untitled Placement"}
                 </h3>
-                <span className="text-xs text-slate-500 flex items-center gap-1 mt-1">
-                  <Building2 className="w-3 h-3" />
-                  {job.organization_table?.name || "Placement"}
+                <span className="text-xs text-slate-300 flex items-center gap-1.5 mt-1 font-medium">
+                  <Building2 className="w-3.5 h-3.5 text-orbit-primary-light" />
+                  <span>
+                    {job.user_table?.name || job.organization_table?.name || "Placement"}
+                    {job.user_table?.organization_table?.sector_table?.sector_name && (
+                      <span className="text-slate-500 font-normal inline-flex items-center gap-1.5 ml-1">
+                        <span>•</span>
+                        <span>{job.user_table.organization_table.sector_table.sector_name}</span>
+                        {job.user_table.organization_table.sector_table.sector_shorthand && (
+                          <span className="text-[10px] bg-orbit-primary/20 text-orbit-primary-light px-1.5 py-0.5 rounded font-bold uppercase tracking-wider">
+                            {job.user_table.organization_table.sector_table.sector_shorthand}
+                          </span>
+                        )}
+                      </span>
+                    )}
+                  </span>
                 </span>
               </div>
             ))
