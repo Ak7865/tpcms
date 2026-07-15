@@ -1,9 +1,10 @@
+import { useEffect, useState, useMemo } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import {
   Briefcase, Users, BookOpenCheck, UserCheck,
   TrendingUp, TrendingDown, Plus, Eye,
-  Calendar, FileText, AlertCircle
+  Calendar, FileText, AlertCircle, Loader2
 } from 'lucide-react'
 import DashboardShell from '../../components/DashboardShell'
 import { Card, CardBody } from '../../components/ui'
@@ -15,6 +16,7 @@ import ManageTraining from './view/ManageTraining'
 import Recruitment from './view/Recruitment'
 import ShortlistedCandidates from './view/ShortlistedCandidates'
 import ScheduleInterviews from './view/ScheduleInterviews'
+import api from '@/services/api'
 
 const viewComponents = {
   'post-job': PostJob,
@@ -37,13 +39,6 @@ const viewComponents = {
   ),
 }
 
-const statsData = [
-  { id: 'active-jobs', label: 'Active Job Posts', value: '8', change: 14.3, icon: Briefcase, color: 'violet' },
-  { id: 'applications', label: 'Total Applications', value: '234', change: 22.5, icon: Users, color: 'cyan' },
-  { id: 'shortlisted', label: 'Shortlisted', value: '45', change: 8.7, icon: UserCheck, color: 'emerald' },
-  { id: 'trainings', label: 'Trainings Posted', value: '3', change: 50.0, icon: BookOpenCheck, color: 'amber' },
-]
-
 const colorClasses = {
   violet: { bg: 'bg-violet-500/15', text: 'text-violet-400' },
   cyan: { bg: 'bg-cyan-500/15', text: 'text-cyan-400' },
@@ -52,12 +47,159 @@ const colorClasses = {
 }
 
 function Overview() {
+  const [data, setData] = useState({
+    placements: [],
+    trainings: [],
+    placementApps: [],
+    trainingApps: [],
+  })
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
+
+  useEffect(() => {
+    let active = true
+    const loadData = async () => {
+      try {
+        setLoading(true)
+        setError('')
+        const [placementsRes, trainingsRes, placementAppsRes, trainingAppsRes] = await Promise.all([
+          api.get('/placements').catch(() => null),
+          api.get('/trainings').catch(() => null),
+          api.get('/placement-applications').catch(() => null),
+          api.get('/training-applications').catch(() => null),
+        ])
+
+        if (active) {
+          const placements = placementsRes?.data || placementsRes || []
+          const trainings = trainingsRes?.data || trainingsRes || []
+          const placementApps = placementAppsRes?.data || placementAppsRes || []
+          const trainingApps = trainingAppsRes?.data || trainingAppsRes || []
+
+          setData({
+            placements: Array.isArray(placements) ? placements : [],
+            trainings: Array.isArray(trainings) ? trainings : [],
+            placementApps: Array.isArray(placementApps) ? placementApps : [],
+            trainingApps: Array.isArray(trainingApps) ? trainingApps : [],
+          })
+        }
+      } catch (err) {
+        if (active) setError(err.message || 'Failed to load dashboard data')
+      } finally {
+        if (active) setLoading(false)
+      }
+    }
+    loadData()
+    return () => {
+      active = false
+    }
+  }, [])
+
+  const stats = useMemo(() => {
+    const activeJobs = data.placements.filter((p) => p.is_active).length
+    const totalApplications = data.placementApps.length + data.trainingApps.length
+    const shortlistedCount =
+      data.placementApps.filter((app) => app.status_id === 2).length +
+      data.trainingApps.filter((app) => app.status_id === 2).length
+    const totalTrainings = data.trainings.length
+
+    return [
+      { id: 'active-jobs', label: 'Active Job Posts', value: String(activeJobs), icon: Briefcase, color: 'violet' },
+      { id: 'applications', label: 'Total Applications', value: String(totalApplications), icon: Users, color: 'cyan' },
+      { id: 'shortlisted', label: 'Shortlisted', value: String(shortlistedCount), icon: UserCheck, color: 'emerald' },
+      { id: 'trainings', label: 'Trainings Posted', value: String(totalTrainings), icon: BookOpenCheck, color: 'amber' },
+    ]
+  }, [data])
+
+  const recentApps = useMemo(() => {
+    const placements = data.placementApps.map((app) => {
+      const studentName = app.student_table?.user_table?.name || 'Student'
+      const deptName = app.student_table?.department_table?.department_name || 'N/A'
+      const cgpaVal = app.student_table?.cgpa || 'N/A'
+      const title = app.placement_table?.title || 'Placement Job'
+      
+      let statusStr = 'Pending'
+      if (app.status_id === 2) statusStr = 'Shortlisted'
+      if (app.status_id === 3) statusStr = 'Rejected'
+
+      return {
+        student: studentName,
+        position: title,
+        branch: deptName,
+        cgpa: cgpaVal,
+        status: statusStr,
+        date: new Date(app.date_of_submission || Date.now()),
+      }
+    })
+
+    const trainings = data.trainingApps.map((app) => {
+      const studentName = app.student_table?.user_table?.name || 'Student'
+      const deptName = app.student_table?.department_table?.department_name || 'N/A'
+      const cgpaVal = app.student_table?.cgpa || 'N/A'
+      const title = app.training_table?.title || 'Training Program'
+      
+      let statusStr = 'Pending'
+      if (app.status_id === 2) statusStr = 'Shortlisted'
+      if (app.status_id === 3) statusStr = 'Rejected'
+
+      return {
+        student: studentName,
+        position: title,
+        branch: deptName,
+        cgpa: cgpaVal,
+        status: statusStr,
+        date: new Date(app.date_of_submission || Date.now()),
+      }
+    })
+
+    return [...placements, ...trainings]
+      .sort((a, b) => b.date - a.date)
+      .slice(0, 5)
+  }, [data])
+
+  const activeJobsList = useMemo(() => {
+    return data.placements
+      .filter((p) => p.is_active)
+      .slice(0, 3)
+      .map((p) => {
+        const appCount = data.placementApps.filter((app) => app.placement_id === p.placement_id).length
+        let deadlineStr = 'No deadline'
+        if (p.last_date_of_submission) {
+          deadlineStr = new Date(p.last_date_of_submission).toLocaleDateString('en-IN', {
+            day: '2-digit',
+            month: 'short',
+            year: 'numeric',
+          })
+        }
+        return {
+          title: p.title || 'Untitled Placement',
+          applications: appCount,
+          deadline: deadlineStr,
+          status: 'Open',
+        }
+      })
+  }, [data])
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center gap-2 text-slate-400 py-12">
+        <Loader2 className="h-5 w-5 animate-spin" /> Loading dashboard data...
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-300">
+        {error}
+      </div>
+    )
+  }
+
   return (
     <>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {statsData.map((stat, i) => {
+        {stats.map((stat, i) => {
           const colors = colorClasses[stat.color]
-          const isPositive = stat.change >= 0
           return (
             <motion.div
               key={stat.id}
@@ -69,10 +211,6 @@ function Overview() {
               <div className="flex items-start justify-between mb-4">
                 <div className={`p-2 rounded-lg ${colors.bg}`}>
                   <stat.icon className={`w-4 h-4 ${colors.text}`} />
-                </div>
-                <div className={`flex items-center gap-1 text-xs font-medium px-2 py-1 rounded-full ${isPositive ? 'bg-emerald-500/10 text-emerald-400' : 'bg-red-500/10 text-red-400'}`}>
-                  {isPositive ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
-                  {Math.abs(stat.change)}%
                 </div>
               </div>
               <p className="text-xs text-slate-500 font-medium mb-1">{stat.label}</p>
@@ -96,34 +234,32 @@ function Overview() {
               <span>CGPA</span>
               <span>Status</span>
             </div>
-            {[
-              { student: 'Ankit Verma', position: 'SDE Intern', branch: 'CSE', cgpa: '8.5', status: 'New' },
-              { student: 'Priya Shah', position: 'Data Analyst', branch: 'IT', cgpa: '9.1', status: 'Reviewed' },
-              { student: 'Rahul Kumar', position: 'SDE Intern', branch: 'CSE', cgpa: '7.8', status: 'Shortlisted' },
-              { student: 'Sneha Gupta', position: 'Frontend Dev', branch: 'CSE', cgpa: '8.9', status: 'New' },
-              { student: 'Amit Patel', position: 'Backend Dev', branch: 'IT', cgpa: '7.2', status: 'Rejected' },
-            ].map((app, i) => (
-              <motion.div
-                key={i}
-                initial={{ opacity: 0, x: -8 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: i * 0.05 }}
-                className="grid grid-cols-5 gap-3 px-3 py-2.5 rounded-lg hover:bg-white/3 transition-colors items-center"
-              >
-                <span className="text-sm text-slate-200 truncate">{app.student}</span>
-                <span className="text-sm text-slate-400 truncate">{app.position}</span>
-                <span className="text-sm text-slate-400">{app.branch}</span>
-                <span className="text-sm text-slate-300 font-medium">{app.cgpa}</span>
-                <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full w-fit ${
-                  app.status === 'New' ? 'bg-blue-500/15 text-blue-400' :
-                  app.status === 'Reviewed' ? 'bg-violet-500/15 text-violet-400' :
-                  app.status === 'Shortlisted' ? 'bg-emerald-500/15 text-emerald-400' :
-                  'bg-red-500/15 text-red-400'
-                }`}>
-                  {app.status}
-                </span>
-              </motion.div>
-            ))}
+            {recentApps.length === 0 ? (
+              <div className="text-xs text-slate-500 py-6 text-center">No applications received yet.</div>
+            ) : (
+              recentApps.map((app, i) => (
+                <motion.div
+                  key={i}
+                  initial={{ opacity: 0, x: -8 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: i * 0.05 }}
+                  className="grid grid-cols-5 gap-3 px-3 py-2.5 rounded-lg hover:bg-white/3 transition-colors items-center"
+                >
+                  <span className="text-sm text-slate-200 truncate">{app.student}</span>
+                  <span className="text-sm text-slate-400 truncate">{app.position}</span>
+                  <span className="text-sm text-slate-400">{app.branch}</span>
+                  <span className="text-sm text-slate-300 font-medium">{app.cgpa}</span>
+                  <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full w-fit ${
+                    app.status === 'New' || app.status === 'Pending' ? 'bg-blue-500/15 text-blue-400' :
+                    app.status === 'Reviewed' ? 'bg-violet-500/15 text-violet-400' :
+                    app.status === 'Shortlisted' ? 'bg-emerald-500/15 text-emerald-400' :
+                    'bg-red-500/15 text-red-400'
+                  }`}>
+                    {app.status}
+                  </span>
+                </motion.div>
+              ))
+            )}
           </div>
         </div>
 
@@ -131,42 +267,42 @@ function Overview() {
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-sm font-semibold text-slate-200">Active Jobs</h2>
             <span className="text-xs bg-emerald-500/15 text-emerald-400 px-2 py-0.5 rounded-full font-medium">
-              3 Open
+              {activeJobsList.length} Open
             </span>
           </div>
           <div className="space-y-3">
-            {[
-              { title: 'Software Developer Intern', applications: 87, deadline: 'Jul 15, 2026', status: 'Open' },
-              { title: 'Data Analyst', applications: 45, deadline: 'Jul 20, 2026', status: 'Open' },
-              { title: 'Frontend Developer', applications: 62, deadline: 'Jul 10, 2026', status: 'Closing Soon' },
-            ].map((job, i) => (
-              <motion.div
-                key={i}
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: i * 0.08 }}
-                className="p-3 rounded-lg border border-orbit-border hover:border-orbit-border2 transition-colors"
-              >
-                <p className="text-sm font-medium text-slate-200">{job.title}</p>
-                <div className="flex items-center gap-3 mt-2">
-                  <span className="text-xs text-slate-500">
-                    <Users className="w-3 h-3 inline mr-1" />{job.applications} apps
-                  </span>
-                  <span className="text-xs text-slate-500">
-                    <Calendar className="w-3 h-3 inline mr-1" />{job.deadline}
-                  </span>
-                </div>
-                <div className="mt-2">
-                  <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${
-                    job.status === 'Open' ? 'bg-emerald-500/15 text-emerald-400' :
-                    job.status === 'Closing Soon' ? 'bg-amber-500/15 text-amber-400' :
-                    'bg-red-500/15 text-red-400'
-                  }`}>
-                    {job.status}
-                  </span>
-                </div>
-              </motion.div>
-            ))}
+            {activeJobsList.length === 0 ? (
+              <div className="text-xs text-slate-500 py-6 text-center">No active job posts found.</div>
+            ) : (
+              activeJobsList.map((job, i) => (
+                <motion.div
+                  key={i}
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: i * 0.08 }}
+                  className="p-3 rounded-lg border border-orbit-border hover:border-orbit-border2 transition-colors"
+                >
+                  <p className="text-sm font-medium text-slate-200">{job.title}</p>
+                  <div className="flex items-center gap-3 mt-2">
+                    <span className="text-xs text-slate-500">
+                      <Users className="w-3 h-3 inline mr-1" />{job.applications} apps
+                    </span>
+                    <span className="text-xs text-slate-500">
+                      <Calendar className="w-3 h-3 inline mr-1" />{job.deadline}
+                    </span>
+                  </div>
+                  <div className="mt-2">
+                    <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${
+                      job.status === 'Open' ? 'bg-emerald-500/15 text-emerald-400' :
+                      job.status === 'Closing Soon' ? 'bg-amber-500/15 text-amber-400' :
+                      'bg-red-500/15 text-red-400'
+                    }`}>
+                      {job.status}
+                    </span>
+                  </div>
+                </motion.div>
+              ))
+            )}
           </div>
         </div>
       </div>
@@ -204,7 +340,7 @@ export default function CompanyDashboard() {
   const ViewComponent = view ? viewComponents[view] : null
 
   if (ViewComponent) {
-    return <DashboardShell title="Company Dashboard" subtitle="Manage job postings, review applications, and conduct recruitment."><ViewComponent /></DashboardShell>
+    return <ViewComponent />
   }
 
   return (

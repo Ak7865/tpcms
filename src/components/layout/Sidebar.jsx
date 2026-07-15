@@ -83,9 +83,9 @@ const viewMap = {
     Dashboard: "dashboard",
     "Company Profile": "profile",
     "Post Job": "post-job",
-    "Manage Jobs": "jobs",
+    "Manage Jobs": "manage-jobs",
     "Post Training": "post-training",
-    "Manage Training": "training",
+    "Manage Training": "manage-training",
     "Student Applications": "recruitment",
     "Shortlisted Candidates": "shortlisted",
     "Schedule Interviews": "interview",
@@ -218,7 +218,6 @@ const menuItems = {
         "Schedule Interviews",
       ],
     },
-    { title: "Settings", icon: Settings },
   ],
 
   Student: [

@@ -14,9 +14,28 @@ export default function ShortlistedCandidates() {
       try {
         setLoading(true)
         setError('')
-        const result = await api.get('/applications/company/shortlisted')
-        const data = result?.data || []
-        setCandidates(Array.isArray(data) ? data : [])
+        const result = await api.get('/placement-applications')
+        const data = result?.data || result || []
+        const filtered = data
+          .filter((app) => app.status_id === 2)
+          .map((app) => {
+            const studentName = app.student_table?.user_table?.name || 'Student'
+            const deptName = app.student_table?.department_table?.department_name || 'N/A'
+            const cgpaVal = app.student_table?.cgpa || 'N/A'
+            const title = app.placement_table?.title || 'Placement Job'
+
+            return {
+              application_id: `${app.placement_id}-${app.student_id}`,
+              student_name: studentName,
+              job_title: title,
+              placement_title: title,
+              department_name: deptName,
+              branch: deptName,
+              cgpa: cgpaVal,
+              shortlisted_on: app.date_of_submission || null,
+            }
+          })
+        setCandidates(filtered)
       } catch (err) {
         setError(err.message || 'Failed to load shortlisted candidates')
       } finally {

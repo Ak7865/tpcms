@@ -3,6 +3,7 @@ import DashboardShell from '@/components/DashboardShell'
 import { Card, CardHeader, CardBody, Button } from '@/components/ui'
 import { Loader2, AlertCircle, Save } from 'lucide-react'
 import { api } from '@/services/api'
+import MediaUpload from '@/components/ui/MediaUpload'
 
 export default function CompanyProfile() {
   const [profile, setProfile] = useState(null)
@@ -10,6 +11,7 @@ export default function CompanyProfile() {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
+  const [sectors, setSectors] = useState([])
   const [editing, setEditing] = useState(false)
 
   const [form, setForm] = useState({
@@ -31,18 +33,30 @@ export default function CompanyProfile() {
     const fetchProfile = async () => {
       try {
         setLoading(true)
-        const result = await api.get('/company/profile')
-        const data = result?.data || result
-        setProfile(data)
-        setForm({
-          name: data.name || data.company_name || '',
-          email: data.email || '',
-          mobile_no: data.mobile_no || data.contact_number || '',
-          address: data.address || '',
-          website: data.website || '',
-          description: data.description || '',
-          industry: data.industry || data.company_type || '',
-        })
+        const sectorsRes = await api.get('/masters/sectors').catch(() => null)
+        const sectorsData = sectorsRes?.data?.data ?? sectorsRes?.data ?? []
+        setSectors(sectorsData)
+
+        const auth = JSON.parse(localStorage.getItem('auth_user') || '{}')
+        const user = auth?.user || {}
+        
+        const extrasKey = `company_extras_${user.user_id}`
+        const extras = JSON.parse(localStorage.getItem(extrasKey) || '{}')
+
+        const mergedData = {
+          name: user.name || '',
+          email: user.email || '',
+          mobile_no: user.mobile_no || extras.mobile_no || '',
+          address: user.address || extras.address || '',
+          website: extras.website || '',
+          description: extras.description || '',
+          industry: extras.industry || '',
+          logo_url: extras.logo_url || '',
+          banner_url: extras.banner_url || '',
+        }
+
+        setProfile(mergedData)
+        setForm(mergedData)
       } catch (err) {
         setError(err.message || 'Failed to load company profile')
       } finally {
@@ -58,19 +72,59 @@ export default function CompanyProfile() {
       setSaving(true)
       setError('')
       setSuccess('')
-      const payload = {
+
+      const auth = JSON.parse(localStorage.getItem('auth_user') || '{}')
+      const user = auth?.user || {}
+
+      const extrasKey = `company_extras_${user.user_id}`
+      const extras = JSON.parse(localStorage.getItem(extrasKey) || '{}')
+
+      const updatedExtras = {
+        ...extras,
+        website: form.website,
+        description: form.description,
+        industry: form.industry,
+        mobile_no: form.mobile_no,
+        address: form.address,
+        logo_url: form.logo_url || extras.logo_url || '',
+        banner_url: form.banner_url || extras.banner_url || '',
+      }
+
+      // Save extras to localStorage
+      localStorage.setItem(extrasKey, JSON.stringify(updatedExtras))
+
+      // Save user modifications to session
+      const nextUser = {
+        ...user,
         name: form.name,
         email: form.email,
         mobile_no: form.mobile_no,
         address: form.address,
-        website: form.website,
-        description: form.description,
-        industry: form.industry,
       }
-      await api.put('/company/profile', payload)
+
+      localStorage.setItem(
+        'auth_user',
+        JSON.stringify({
+          ...auth,
+          user: nextUser,
+        })
+      )
+
+      // Find sector_id matching form.industry
+      const selectedSector = sectors.find((s) => s.sector_name === form.industry)
+      const sectorId = selectedSector ? selectedSector.sector_id : null
+
+      // Update backend database user_table & organization_table values
+      await api.put('/users/profile', {
+        name: form.name,
+        email: form.email,
+        mobile_no: form.mobile_no,
+        sector_id: sectorId,
+      })
+
+      setProfile(form)
       setSuccess('Profile updated successfully')
       setEditing(false)
-      setProfile({ ...profile, ...payload })
     } catch (err) {
       setError(err.message || 'Failed to update profile')
     } finally {
@@ -119,6 +173,20 @@ export default function CompanyProfile() {
           )}
 
           <form onSubmit={handleSubmit} className="space-y-5">
+            {(form.logo_url || form.banner_url) && (
+              <div className="relative h-44 w-full rounded-xl overflow-hidden bg-orbit-surface2 border border-orbit-border mb-6">
+                {form.banner_url ? (
+                  <img src={form.banner_url} alt="Company Banner" className="w-full h-full object-cover" />
+                ) : (
+                  <div className="w-full h-full bg-orbit-surface/30 flex items-center justify-center text-slate-500 text-xs font-medium">No Banner Image Configured</div>
+                )}
+                {form.logo_url && (
+                  <div className="absolute bottom-3 left-3 h-16 w-16 rounded-xl bg-orbit-surface border border-orbit-border overflow-hidden shadow-lg p-1.5 flex items-center justify-center">
+                    <img src={form.logo_url} alt="Company Logo" className="max-h-full max-w-full object-contain rounded-lg" />
+                  </div>
+                )}
+              </div>
+            )}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs font-medium text-slate-400 mb-1.5">Company Name *</label>
@@ -133,15 +201,20 @@ export default function CompanyProfile() {
                 />
               </div>
               <div>
-                <label className="block text-xs font-medium text-slate-400 mb-1.5">Industry</label>
-                <input
-                  type="text"
+                <label className="block text-xs font-medium text-slate-400 mb-1.5">Industry / Sector</label>
+                <select
                   value={form.industry}
                   onChange={update('industry')}
                   disabled={!editing}
-                  className="auth-input w-full px-4 py-2.5 rounded-lg bg-orbit-surface2 border border-orbit-border text-sm text-slate-200 placeholder-slate-600 disabled:opacity-50"
-                  placeholder="e.g. IT Services"
-                />
+                  className="auth-input w-full px-4 py-2.5 rounded-lg bg-orbit-surface2 border border-orbit-border text-sm text-slate-200 placeholder-slate-600 disabled:opacity-50 outline-none appearance-none"
+                >
+                  <option value="" className="bg-orbit-surface">Select an Industry / Sector</option>
+                  {sectors.map((sec) => (
+                    <option key={sec.sector_id} value={sec.sector_name} className="bg-orbit-surface">
+                      {sec.sector_name}
+                    </option>
+                  ))}
+                </select>
               </div>
               <div>
                 <label className="block text-xs font-medium text-slate-400 mb-1.5">Email *</label>
@@ -199,6 +272,24 @@ export default function CompanyProfile() {
                   placeholder="Brief description about the company"
                 />
               </div>
+              {editing && (
+                <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4 border-t border-orbit-border pt-4 mt-2">
+                  <MediaUpload
+                    label="Company Logo"
+                    accept="image/*"
+                    value={form.logo_url}
+                    uploadPath="/uploads/profile"
+                    onChange={(url) => setForm((p) => ({ ...p, logo_url: url }))}
+                  />
+                  <MediaUpload
+                    label="Company Banner"
+                    accept="image/*"
+                    value={form.banner_url}
+                    uploadPath="/uploads/banner"
+                    onChange={(url) => setForm((p) => ({ ...p, banner_url: url }))}
+                  />
+                </div>
+              )}
             </div>
 
             {editing && (

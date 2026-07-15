@@ -104,7 +104,7 @@ export default function PostTraining() {
                 <textarea rows={3} value={form.description} onChange={update('description')} className="w-full rounded-lg border border-orbit-border bg-orbit-surface2 px-3 py-2.5 text-sm text-slate-200" />
               </div>
               <div className="md:col-span-2">
-                <MediaUpload label="Training Banner" value={form.image_url} onChange={(url) => setForm((p) => ({ ...p, image_url: url }))} accept="image/*" />
+                <MediaUpload label="Training Banner" value={form.image_url} uploadPath="/uploads/banner" onChange={(url) => setForm((p) => ({ ...p, image_url: url }))} accept="image/*" />
               </div>
             </div>
             <Button type="submit" loading={saving} icon={<Plus size={14} />}>Post Training</Button>

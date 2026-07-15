@@ -27,6 +27,7 @@ function fmtDate(value) {
 export default function JobsView() {
   const [jobs, setJobs] = useState([]);
   const [applications, setApplications] = useState([]);
+  const [divisions, setDivisions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [applyingId, setApplyingId] = useState(null);
   const [error, setError] = useState("");
@@ -40,13 +41,15 @@ export default function JobsView() {
       try {
         setLoading(true);
         setError("");
-        const [placementRes, appRes] = await Promise.all([
+        const [placementRes, appRes, divisionsRes] = await Promise.all([
           api.get("/placements"),
           api.get("/placement-applications"),
+          api.get("/masters/divisions").catch(() => null),
         ]);
         if (!cancelled) {
           setJobs(getRows(placementRes));
           setApplications(getRows(appRes));
+          setDivisions(divisionsRes?.data?.data ?? divisionsRes?.data ?? divisionsRes ?? []);
         }
       } catch (err) {
         if (!cancelled) setError(err.message || "Failed to load placements.");
@@ -151,35 +154,78 @@ export default function JobsView() {
                 transition={{ delay: index * 0.04 }}
                 className="p-4 rounded-lg border border-orbit-border hover:border-orbit-border2 transition-all bg-orbit-surface"
               >
-                <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-                  <div>
-                    <h3 className="text-sm font-medium text-slate-200">
-                      {job.title || "Untitled Placement"}
-                    </h3>
-                    {job.description && (
-                      <p className="text-xs text-slate-500 mt-1 line-clamp-2">
-                        {job.description}
-                      </p>
+                <div className="flex flex-col gap-4 md:flex-row md:items-center justify-between">
+                  <div className="flex items-center gap-4 flex-1 min-w-0">
+                    {job.image_url && (
+                      <img
+                        src={job.image_url}
+                        alt=""
+                        className="h-16 w-16 rounded-lg object-cover flex-shrink-0 border border-orbit-border bg-orbit-surface2"
+                      />
                     )}
-                    <div className="flex flex-wrap items-center gap-3 mt-2">
-                      <span className="text-xs text-slate-500 flex items-center gap-1">
-                        <Building2 className="w-3 h-3" />
-                        {job.organization_table?.name || "Placement"}
-                      </span>
-                      <span className="text-xs text-slate-500 flex items-center gap-1">
-                        <GraduationCap className="w-3 h-3" />
-                        Min CGPA {job.min_cgpa ?? "N/A"}
-                      </span>
-                      <span className="text-xs text-slate-500 flex items-center gap-1">
-                        <Clock className="w-3 h-3" />
-                        {fmtDate(job.last_date_of_submission)}
-                      </span>
+                    <div className="flex-1 min-w-0">
+                      <h3 className="text-sm font-medium text-slate-200 truncate">
+                        {job.title || "Untitled Placement"}
+                      </h3>
+                      {job.description && (
+                        <p className="text-xs text-slate-500 mt-1 line-clamp-2">
+                          {job.description}
+                        </p>
+                      )}
+                      <div className="flex flex-wrap items-center gap-3 mt-2">
+                        <span className="text-xs text-slate-500 flex items-center gap-1">
+                          <Building2 className="w-3 h-3" />
+                          {job.user_table?.name || job.organization_table?.name || "Placement"}
+                          {job.user_table?.organization_table?.sector_table?.sector_name && (
+                            <span className="text-slate-600 text-[11px] ml-1">({job.user_table.organization_table.sector_table.sector_name})</span>
+                          )}
+                        </span>
+                        <span className="text-xs text-slate-500 flex items-center gap-1">
+                          <GraduationCap className="w-3 h-3" />
+                          Min CGPA {job.min_cgpa ?? "N/A"}
+                        </span>
+                        <span className="text-xs text-slate-500 flex items-center gap-1">
+                          <Clock className="w-3 h-3" />
+                          Apply by: {fmtDate(job.last_date_of_submission)}
+                        </span>
+                        {(job.start_date || job.end_date) && (
+                          <span className="text-xs text-slate-600">
+                            Drive: {job.start_date ? new Date(job.start_date).toLocaleDateString("en-IN", { day: 'numeric', month: 'short' }) : 'N/A'} to {job.end_date ? new Date(job.end_date).toLocaleDateString("en-IN", { day: 'numeric', month: 'short' }) : 'N/A'}
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Criteria Badges */}
+                      <div className="flex flex-wrap items-center gap-2 mt-2.5">
+                        {(job.salary_lower || job.salary_upper) && (
+                          <span className="text-[10px] bg-emerald-500/10 text-emerald-400 px-2 py-0.5 rounded border border-emerald-500/20">
+                            LPA: {job.salary_lower ? `₹${(job.salary_lower/100000).toFixed(1)}` : 'N/A'} - {job.salary_upper ? `₹${(job.salary_upper/100000).toFixed(1)}` : 'N/A'}
+                          </span>
+                        )}
+                        <span className={`text-[10px] px-2 py-0.5 rounded border ${
+                          job.has_backlog 
+                            ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' 
+                            : 'bg-blue-500/10 text-blue-400 border-blue-500/20'
+                        }`}>
+                          {job.has_backlog ? 'Backlogs Allowed' : 'No Active Backlogs'}
+                        </span>
+                        {job.min_tenth_division_id && (
+                          <span className="text-[10px] bg-violet-500/10 text-violet-400 px-2 py-0.5 rounded border border-violet-500/20">
+                            10th: {divisions.find(d => String(d.division_id) === String(job.min_tenth_division_id))?.division || `Div ${job.min_tenth_division_id}`}
+                          </span>
+                        )}
+                        {job.min_twelfth_division_id && (
+                          <span className="text-[10px] bg-violet-500/10 text-violet-400 px-2 py-0.5 rounded border border-violet-500/20">
+                            12th: {divisions.find(d => String(d.division_id) === String(job.min_twelfth_division_id))?.division || `Div ${job.min_twelfth_division_id}`}
+                          </span>
+                        )}
+                      </div>
                     </div>
                   </div>
                   <button
                     disabled={hasApplied || applyingId === placementId}
                     onClick={() => applyToPlacement(placementId)}
-                    className="inline-flex items-center justify-center gap-1 rounded-lg bg-orbit-primary px-3 py-2 text-xs font-medium text-white transition-colors hover:bg-orbit-primary/90 disabled:cursor-not-allowed disabled:bg-slate-700 disabled:text-slate-400"
+                    className="inline-flex items-center justify-center gap-1 rounded-lg bg-orbit-primary px-3 py-2 text-xs font-medium text-white transition-colors hover:bg-orbit-primary/90 disabled:cursor-not-allowed disabled:bg-slate-700 disabled:text-slate-400 self-end md:self-center flex-shrink-0"
                   >
                     {applyingId === placementId ? (
                       <Loader2 className="w-3 h-3 animate-spin" />

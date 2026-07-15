@@ -6,6 +6,7 @@ import { api } from '@/services/api'
 
 export default function ScheduleInterviews() {
   const [interviews, setInterviews] = useState([])
+  const [candidates, setCandidates] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [showForm, setShowForm] = useState(false)
@@ -25,34 +26,60 @@ export default function ScheduleInterviews() {
   }
 
   useEffect(() => {
-    const fetchInterviews = async () => {
+    const loadInterviewsAndCandidates = async () => {
       try {
         setLoading(true)
         setError('')
-        const result = await api.get('/interviews/company')
-        const data = result?.data || []
-        setInterviews(Array.isArray(data) ? data : [])
+        
+        // Load interviews from localStorage
+        const stored = localStorage.getItem('company_interviews')
+        const parsed = stored ? JSON.parse(stored) : []
+        setInterviews(parsed)
+
+        // Fetch shortlisted candidates from backend
+        const result = await api.get('/placement-applications')
+        const data = result?.data || result || []
+        const shortlisted = data
+          .filter((app) => app.status_id === 2)
+          .map((app) => ({
+            application_id: `${app.placement_id}-${app.student_id}`,
+            student_name: app.student_table?.user_table?.name || 'Student',
+            job_title: app.placement_table?.title || 'Placement Job',
+          }))
+        setCandidates(shortlisted)
       } catch (err) {
-        setError(err.message || 'Failed to load interviews')
+        setError(err.message || 'Failed to load interviews and candidates')
       } finally {
         setLoading(false)
       }
     }
-    fetchInterviews()
+    loadInterviewsAndCandidates()
   }, [])
 
   const handleSubmit = async (e) => {
     e.preventDefault()
     try {
       setSaving(true)
-      await api.post('/interviews', {
-        application_id: Number(form.application_id),
+      
+      const cand = candidates.find((c) => c.application_id === form.application_id)
+      const studentName = cand ? cand.student_name : 'Candidate'
+      const jobTitle = cand ? cand.job_title : 'Job Post'
+
+      const newInterview = {
+        interview_id: Date.now(),
+        application_id: form.application_id,
+        student_name: studentName,
+        job_title: jobTitle,
         date: form.date,
         time: form.time,
         mode: form.mode,
         meeting_link: form.meeting_link,
         notes: form.notes,
-      })
+      }
+
+      const updated = [newInterview, ...interviews]
+      localStorage.setItem('company_interviews', JSON.stringify(updated))
+      setInterviews(updated)
       setShowForm(false)
       setForm({
         application_id: '',
@@ -62,8 +89,6 @@ export default function ScheduleInterviews() {
         meeting_link: '',
         notes: '',
       })
-      const result = await api.get('/interviews/company')
-      setInterviews(result?.data || [])
     } catch (err) {
       setError(err.message || 'Failed to schedule interview')
     } finally {
@@ -95,15 +120,20 @@ export default function ScheduleInterviews() {
               <h3 className="text-sm font-semibold text-slate-200">New Interview</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-medium text-slate-400 mb-1.5">Application ID *</label>
-                  <input
-                    type="number"
+                  <label className="block text-xs font-medium text-slate-400 mb-1.5">Candidate *</label>
+                  <select
                     value={form.application_id}
                     onChange={update('application_id')}
                     required
-                    className="auth-input w-full px-4 py-2.5 rounded-lg bg-orbit-surface2 border border-orbit-border text-sm text-slate-200 placeholder-slate-600"
-                    placeholder="Application ID"
-                  />
+                    className="appearance-none w-full px-4 py-2.5 pr-8 rounded-lg bg-orbit-surface2 border border-orbit-border text-sm text-slate-200 cursor-pointer outline-none"
+                  >
+                    <option value="" className="bg-orbit-surface">Select a Candidate</option>
+                    {candidates.map((cand) => (
+                      <option key={cand.application_id} value={cand.application_id} className="bg-orbit-surface">
+                        {cand.student_name} ({cand.job_title})
+                      </option>
+                    ))}
+                  </select>
                 </div>
                 <div>
                   <label className="block text-xs font-medium text-slate-400 mb-1.5">Date *</label>
@@ -131,10 +161,10 @@ export default function ScheduleInterviews() {
                     <select
                       value={form.mode}
                       onChange={update('mode')}
-                      className="appearance-none w-full px-4 py-2.5 pr-8 rounded-lg bg-orbit-surface2 border border-orbit-border text-sm text-slate-200 cursor-pointer"
+                      className="appearance-none w-full px-4 py-2.5 pr-8 rounded-lg bg-orbit-surface2 border border-orbit-border text-sm text-slate-200 cursor-pointer outline-none"
                     >
-                      <option value="Online">Online</option>
-                      <option value="Offline">Offline</option>
+                      <option value="Online" className="bg-orbit-surface">Online</option>
+                      <option value="Offline" className="bg-orbit-surface">Offline</option>
                     </select>
                   </div>
                 </div>

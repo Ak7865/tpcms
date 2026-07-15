@@ -8,6 +8,7 @@ import {
   GraduationCap,
   Loader2,
   Search,
+  Building2,
 } from "lucide-react";
 
 function getRows(res) {
@@ -148,10 +149,27 @@ export default function TrainingView() {
                 transition={{ delay: index * 0.04 }}
                 className="bg-orbit-surface rounded-xl border border-orbit-border hover:border-orbit-border2 transition-colors p-5"
               >
-                <BookOpenCheck className="w-5 h-5 text-orbit-primary-light mb-3" />
+                {training.image_url ? (
+                  <img
+                    src={training.image_url}
+                    alt=""
+                    className="w-full h-32 rounded-lg object-cover mb-3 border border-orbit-border bg-orbit-surface2"
+                  />
+                ) : (
+                  <BookOpenCheck className="w-5 h-5 text-orbit-primary-light mb-3" />
+                )}
                 <h3 className="text-sm font-semibold text-slate-200 mb-1">
                   {training.title || "Training Program"}
                 </h3>
+                <div className="flex items-center gap-1 text-[11px] text-slate-400 mb-2">
+                  <Building2 size={11} className="text-slate-550" />
+                  <span>
+                    {training.user_table?.name || "Training Provider"}
+                    {training.user_table?.organization_table?.sector_table?.sector_name && (
+                      <span className="text-slate-500 ml-1">({training.user_table.organization_table.sector_table.sector_name})</span>
+                    )}
+                  </span>
+                </div>
                 <p className="text-xs text-slate-500 line-clamp-2">
                   {training.description || "No description provided."}
                 </p>
@@ -162,8 +180,14 @@ export default function TrainingView() {
                   </span>
                   <span className="flex items-center gap-1">
                     <CalendarClock size={12} />
-                    {fmtDate(training.last_date_of_submission)}
+                    Apply by: {fmtDate(training.last_date_of_submission)}
                   </span>
+                  {(training.start_date || training.end_date) && (
+                    <span className="flex items-center gap-1 text-slate-400">
+                      <CalendarClock size={12} className="text-orbit-primary-light" />
+                      Program: {training.start_date ? new Date(training.start_date).toLocaleDateString("en-IN", { day: 'numeric', month: 'short' }) : 'N/A'} to {training.end_date ? new Date(training.end_date).toLocaleDateString("en-IN", { day: 'numeric', month: 'short' }) : 'N/A'}
+                    </span>
+                  )}
                 </div>
                 <button
                   disabled={hasApplied || applyingId === trainingId}

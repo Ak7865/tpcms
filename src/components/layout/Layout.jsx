@@ -10,9 +10,10 @@ export function Layout() {
   const sidebarState = useSidebarState()
   const location = useLocation()
 
-  // Get role from localStorage auth_user
+  // Get role from localStorage auth_user and map backend role names to UI keys
   const auth = JSON.parse(localStorage.getItem('auth_user') || '{}')
-  const role = auth?.user?.role_table?.role || 'Super Admin'
+  const rawRole = auth?.user?.role_table?.role || 'Super Admin'
+  const role = rawRole === 'Organization' ? 'Company' : (rawRole === 'SuperAdmin' ? 'Super Admin' : rawRole)
 
   return (
     <SidebarContext.Provider value={sidebarState}>

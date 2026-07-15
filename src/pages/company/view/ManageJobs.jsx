@@ -50,7 +50,7 @@ export default function ManageJobs() {
                   className="flex items-start justify-between rounded-lg border border-orbit-border p-4"
                 >
                   <div className="flex gap-4">
-                    {job.image_url?.startsWith('data:image') && (
+                    {job.image_url && (
                       <img src={job.image_url} alt="" className="h-16 w-16 rounded-lg object-cover" />
                     )}
                     <div>

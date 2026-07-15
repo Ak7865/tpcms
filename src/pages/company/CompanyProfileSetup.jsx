@@ -17,6 +17,7 @@ export default function CompanyProfileSetup() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
+  const [sectors, setSectors] = useState([])
   const [form, setForm] = useState({
     name: '',
     description: '',
@@ -30,8 +31,15 @@ export default function CompanyProfileSetup() {
     const load = async () => {
       try {
         const orgId = user.user_id
-        const res = await api.get(`/organizations/${orgId}`)
-        const data = res?.data || user
+        const [orgRes, sectorsRes] = await Promise.all([
+          api.get(`/organizations/${orgId}`).catch(() => null),
+          api.get(`/masters/sectors`).catch(() => null),
+        ])
+        
+        const data = orgRes?.data?.data ?? orgRes?.data ?? user
+        const sectorsData = sectorsRes?.data?.data ?? sectorsRes?.data ?? []
+        setSectors(sectorsData)
+
         setForm({
           name: data.name || user.name || '',
           description: data.description || '',
@@ -129,13 +137,19 @@ export default function CompanyProfileSetup() {
             />
           </div>
           <div>
-            <label className="mb-1.5 block text-xs text-slate-400">Industry</label>
-            <input
+            <label className="mb-1.5 block text-xs text-slate-400">Industry / Sector</label>
+            <select
               value={form.industry}
               onChange={(e) => setForm((p) => ({ ...p, industry: e.target.value }))}
-              className="w-full rounded-lg border border-orbit-border bg-orbit-surface2 px-3 py-2.5 text-sm text-slate-200"
-              placeholder="e.g. IT Services"
-            />
+              className="w-full rounded-lg border border-orbit-border bg-orbit-surface2 px-3 py-2.5 text-sm text-slate-200 outline-none appearance-none"
+            >
+              <option value="" className="bg-orbit-surface">Select an Industry / Sector</option>
+              {sectors.map((sec) => (
+                <option key={sec.sector_id} value={sec.sector_name} className="bg-orbit-surface">
+                  {sec.sector_name}
+                </option>
+              ))}
+            </select>
           </div>
           <div>
             <label className="mb-1.5 block text-xs text-slate-400">Website</label>
@@ -160,12 +174,14 @@ export default function CompanyProfileSetup() {
             label="Company Logo"
             accept="image/*"
             value={form.logo_url}
+            uploadPath="/uploads/profile"
             onChange={(url) => setForm((p) => ({ ...p, logo_url: url }))}
           />
           <MediaUpload
             label="Company Banner"
             accept="image/*"
             value={form.banner_url}
+            uploadPath="/uploads/banner"
             onChange={(url) => setForm((p) => ({ ...p, banner_url: url }))}
             hint="Used on job posts and recruitment pages"
           />
