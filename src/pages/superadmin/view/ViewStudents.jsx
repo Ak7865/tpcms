@@ -30,7 +30,7 @@ export default function ViewStudents() {
         const formatted = (result.data || []).map((user, index) => ({
           id: user.user_id || index,
           roll: user.roll_no || 'N/A',
-          name: user.user_table.name || 'Unknown',
+          name: user.user_table?.name || 'Unknown',
           dept: user.department_table?.department_name || 'Not Assigned',
           semester: user.semester_id || '—',
           age:user.age,
