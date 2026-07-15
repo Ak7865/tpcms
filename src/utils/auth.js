@@ -1,30 +1,30 @@
 /** Backend role names → frontend sidebar role keys */
 export const BACKEND_TO_UI_ROLE = {
   SuperAdmin: 'Super Admin',
-  Coordinator: 'T&P',
+  Coordinator: 'Coordinator',
   Organization: 'Company',
   Student: 'Student',
 }
 
 export const UI_TO_BACKEND_ROLE = {
   'Super Admin': 'SuperAdmin',
-  'T&P': 'Coordinator',
-  Company: 'Organization',
-  Student: 'Student',
+  'Coordinator': 'Coordinator',
+  'Company': 'Organization',
+  'Student': 'Student',
 }
 
 export const ROLE_ID_MAP = {
   'Super Admin': 1,
-  Student: 2,
-  'T&P': 3,
-  Company: 4,
+  'Student': 2,
+  'Coordinator': 3,
+  'Company': 4,
 }
 
 export const DASHBOARD_PATHS = {
   'Super Admin': '/super-admin/dashboard',
-  'T&P': '/t&p/dashboard',
-  Company: '/company/dashboard',
-  Student: '/students/dashboard',
+  'Coordinator': '/coordinator/dashboard',
+  'Company': '/company/dashboard',
+  'Student': '/students/dashboard',
 }
 
 export function getAuth() {

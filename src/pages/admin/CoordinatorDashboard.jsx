@@ -6,26 +6,52 @@ import {
   TrendingUp, TrendingDown, UserCheck, Filter,
   Megaphone, ClipboardList,
 } from 'lucide-react'
-import DashboardShell from '../../components/DashboardShell'
-import SettingsPage from '../settings/SettingsPage'
-import FilterEligible from './view/FilterEligible'
-import DepartmentApplications from './view/DepartmentApplications'
-import ViewStudents from './view/ViewStudents'
-import DisableStudents from './view/DisableStudents'
-import Notices from './view/Notices'
+import DashboardShell  from './../../components/DashboardShell'
+import Dashboard from "./view/Dashboard";
+import ViewStudents from "./view/ViewStudents";
+import StudentDetails from "./view/StudentDetails";
+
+import ViewTrainings from "./view/ViewTrainings";
+import TrainingDetails from "./view/TrainingDetails";
+import TrainingApplications from "./view/TrainingApplications";
+import PostTraining from "./view/PostTraining";
+
+import ViewPlacements from "./view/ViewPlacements";
+import PlacementDetails from "./view/PlacementDetails";
+import PlacementApplications from "./view/PlacementApplications";
+import PostPlacement from "./view/PostPlacement";
+
+import ShareNotes from "./view/ShareNotes";
+import ChangePassword from "./view/ChangePassword";
+import FilterEligible from "./view/FilterEligible";
+import SettingsPage from "./../settings/SettingsPage";
+
 import api from '../../services/api'
 
 const viewComponents = {
-  dashboard: null,
+  dashboard: Dashboard,
+
   students: ViewStudents,
-  'disable-students': DisableStudents,
+  "student-details": StudentDetails,
+
   eligible: FilterEligible,
-  applications: DepartmentApplications,
-  notices: () => <Notices defaultType="General" />,
-  'gov-notices': () => <Notices defaultType="Government" />,
-  'off-campus': () => <Notices defaultType="Off Campus" />,
+
+  "view-trainings": ViewTrainings,
+  "training-details": TrainingDetails,
+  "training-applications": TrainingApplications,
+  "post-training": PostTraining,
+
+  "view-placements": ViewPlacements,
+  "placement-details": PlacementDetails,
+  "placement-applications": PlacementApplications,
+  "post-placement": PostPlacement,
+
+  "shared-notes": ShareNotes,
+
+  "change-password": ChangePassword,
+
   settings: SettingsPage,
-}
+};
 
 function Overview() {
   const [metrics, setMetrics] = useState(null)
@@ -104,30 +130,7 @@ function Overview() {
   )
 }
 
-export default function AdminDashboard() {
-  const [searchParams] = useSearchParams()
-  const view = searchParams.get('view')
 
-  const ViewComponent = view ? viewComponents[view] : null
-
-  if (view === 'settings') {
-    return <SettingsPage />
-  }
-
-  if (ViewComponent) {
-    return (
-      <DashboardShell title="T&P Coordinator Dashboard" subtitle="Manage department students, applications, and placement notices.">
-        <ViewComponent />
-      </DashboardShell>
-    )
-  }
-
-  return (
-    <DashboardShell title="T&P Coordinator Dashboard" subtitle="Manage department students, applications, and placement notices.">
-      <Overview />
-    </DashboardShell>
-  )
-}
 /* ==========================================================
    Coordinator Dashboard
 ========================================================== */

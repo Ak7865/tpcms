@@ -15,27 +15,27 @@ import api from '../../services/api';
 
 const roles = [
   { key: 'Super Admin', label: 'Super Admin', icon: Shield, desc: 'Full system access', color: 'from-red-500 to-orange-500' },
-  { key: 'T&P', label: 'T&P Coordinator', icon: Users, desc: 'Department management', color: 'from-blue-500 to-cyan-500' },
+  { key: 'Coordinator', label: 'Coordinator', icon: Users, desc: 'Department management', color: 'from-blue-500 to-cyan-500' },
   { key: 'Company', label: 'Company', icon: Building2, desc: 'Post jobs & recruit', color: 'from-emerald-500 to-green-500' },
   { key: 'Student', label: 'Student', icon: GraduationCap, desc: 'Apply for jobs', color: 'from-violet-500 to-purple-500' },
 ];
 
 const roleIdMap = {
   'Super Admin': 1,
-  'T&P': 3,
+  'Coordinator': 3,
   'Company': 4,
   'Student': 2,
 };
 
 const dashboardPaths = {
   'Super Admin': '/super-admin/dashboard',
-  'T&P': '/t&p/dashboard',
+  'Coordinator': '/coordinator/dashboard',
   'Company': '/company/dashboard',
   'Student': '/students/dashboard',
 };
 
 const profileSetupPaths = {
-  'T&P': '/t&p/dashboard?view=settings',
+  'Coordinator': '/coodinator/dashboard?view=settings',
   'Company': '/company/profile-setup',
   'Student': '/students/profile-setup',
 };

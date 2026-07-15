@@ -23,9 +23,9 @@ import logout from "@/pages/auth/logout";
 /* ──────────────────────────── role → dashboard path ──────────────────────────── */
 const dashboardPaths = {
   "Super Admin": "/super-admin/dashboard",
-  "T&P": "/coordinator/dashboard",
-  Company: "/company/dashboard",
-  Student: "/students/dashboard",
+  "Coordinator": "/coordinator/dashboard",
+  "Company": "/company/dashboard",
+  "Student": "/students/dashboard",
 };
 
 /* ──────────────────── role → label → query-param view value ──────────────────── */
@@ -254,10 +254,10 @@ const menuItems = {
 const roleBadgeColors = {
   "Super Admin":
     "from-red-500/20 to-orange-500/20 text-orange-300 border-orange-500/30",
-  "T&P": "from-blue-500/20 to-cyan-500/20 text-cyan-300 border-cyan-500/30",
-  Company:
+  "Coordinator": "from-blue-500/20 to-cyan-500/20 text-cyan-300 border-cyan-500/30",
+  "Company":
     "from-emerald-500/20 to-green-500/20 text-emerald-300 border-emerald-500/30",
-  Student:
+  "Student":
     "from-violet-500/20 to-purple-500/20 text-purple-300 border-purple-500/30",
 };
 

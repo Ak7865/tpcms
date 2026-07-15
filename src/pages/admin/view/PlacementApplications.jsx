@@ -17,7 +17,6 @@ import {
   Clock,
 } from "lucide-react";
 import { api } from "../../../services/api";
-import RejectRemarkModal from "../../../components/RejectRemarkModal";
 
 const STATUS = {
   1: "Pending",
@@ -42,14 +41,11 @@ export default function PlacementApplications() {
 
   const [error, setError] = useState("");
 
-  const [rejectOpen, setRejectOpen] = useState(false);
-
-  const [selectedApplication, setSelectedApplication] =
-    useState(null);
 
   useEffect(() => {
     loadApplications();
   }, []);
+
 
   async function loadApplications() {
     try {
@@ -78,7 +74,7 @@ export default function PlacementApplications() {
 
     }
   }
-
+  
   async function approveApplication(application) {
     try {
       setProcessing(
@@ -106,10 +102,28 @@ export default function PlacementApplications() {
     }
   }
 
-  function rejectApplication(application) {
-    setSelectedApplication(application);
-    setRejectOpen(true);
+async function rejectApplication(application) {
+  const remark = window.prompt("Enter rejection remark:");
+
+  if (remark === null) return;
+
+  try {
+    await api.patch(
+      `/placement-applications/${application.placement_id}/students/${application.student_id}?status=reject`,
+      {
+        remarks: remark,
+      }
+    );
+
+    loadApplications();
+
+  } catch (err) {
+    alert(
+      err?.response?.data?.message ||
+      err.message
+    );
   }
+}
 
   async function submitReject(remark) {
     if (!selectedApplication) return;
@@ -600,4 +614,169 @@ export default function PlacementApplications() {
           </Card>
 
         )}
+                {/* ===========================================
+                Reject Remark Modal
+        =========================================== */}
+
         
+        {/* ===========================================
+                Summary
+        =========================================== */}
+
+        <div className="grid gap-6 lg:grid-cols-2">
+
+          {/* Pending Applications */}
+
+          <Card>
+
+            <CardBody>
+
+              <h2 className="mb-5 text-lg font-semibold text-white">
+                Pending Applications
+              </h2>
+
+              {applications.filter((a) => a.status_id === 1).length === 0 ? (
+
+                <div className="flex h-40 items-center justify-center text-slate-500">
+                  No pending applications.
+                </div>
+
+              ) : (
+
+                <div className="space-y-4">
+
+                  {applications
+                    .filter((a) => a.status_id === 1)
+                    .slice(0, 5)
+                    .map((application) => (
+
+                      <div
+                        key={`${application.placement_id}-${application.student_id}`}
+                        className="rounded-xl border border-orbit-border bg-orbit-surface2/40 p-4"
+                      >
+
+                        <div className="flex items-center justify-between">
+
+                          <div>
+
+                            <h3 className="font-medium text-white">
+
+                              {application.student_table?.name ||
+                                `Student #${application.student_id}`}
+
+                            </h3>
+
+                            <p className="mt-1 text-xs text-slate-500">
+
+                              {application.placement_table?.title ||
+                                `Placement #${application.placement_id}`}
+
+                            </p>
+
+                          </div>
+
+                          <Badge variant="warning">
+                            Pending
+                          </Badge>
+
+                        </div>
+
+                      </div>
+
+                    ))}
+
+                </div>
+
+              )}
+
+            </CardBody>
+
+          </Card>
+
+          {/* Statistics */}
+
+          <Card>
+
+            <CardBody>
+
+              <h2 className="mb-5 text-lg font-semibold text-white">
+                Application Statistics
+              </h2>
+
+              <div className="space-y-4">
+
+                <div className="flex items-center justify-between rounded-xl border border-orbit-border bg-orbit-surface2/40 p-4">
+
+                  <span className="text-slate-400">
+                    Total Applications
+                  </span>
+
+                  <span className="text-xl font-bold text-white">
+                    {applications.length}
+                  </span>
+
+                </div>
+
+                <div className="flex items-center justify-between rounded-xl border border-orbit-border bg-orbit-surface2/40 p-4">
+
+                  <span className="text-slate-400">
+                    Pending
+                  </span>
+
+                  <span className="text-xl font-bold text-amber-400">
+                    {
+                      applications.filter(
+                        (a) => a.status_id === 1
+                      ).length
+                    }
+                  </span>
+
+                </div>
+
+                <div className="flex items-center justify-between rounded-xl border border-orbit-border bg-orbit-surface2/40 p-4">
+
+                  <span className="text-slate-400">
+                    Approved
+                  </span>
+
+                  <span className="text-xl font-bold text-emerald-400">
+                    {
+                      applications.filter(
+                        (a) => a.status_id === 2
+                      ).length
+                    }
+                  </span>
+
+                </div>
+
+                <div className="flex items-center justify-between rounded-xl border border-orbit-border bg-orbit-surface2/40 p-4">
+
+                  <span className="text-slate-400">
+                    Rejected
+                  </span>
+
+                  <span className="text-xl font-bold text-red-400">
+                    {
+                      applications.filter(
+                        (a) => a.status_id === 3
+                      ).length
+                    }
+                  </span>
+
+                </div>
+
+              </div>
+
+            </CardBody>
+
+          </Card>
+
+        </div>
+
+      </div>
+
+    </DashboardShell>
+
+  );
+
+}

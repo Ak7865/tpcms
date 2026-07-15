@@ -17,7 +17,6 @@ import {
   Clock,
 } from "lucide-react";
 import { api } from "../../../services/api";
-import RejectRemarkModal from "../../../components/RejectRemarkModal";
 
 const STATUS = {
   1: "Pending",
@@ -42,10 +41,6 @@ export default function TrainingApplications() {
 
   const [error, setError] = useState("");
 
-  const [rejectOpen, setRejectOpen] = useState(false);
-
-  const [selectedApplication, setSelectedApplication] =
-    useState(null);
 
   useEffect(() => {
     loadApplications();
@@ -97,11 +92,28 @@ export default function TrainingApplications() {
       setProcessing("");
     }
   }
+async function rejectApplication(application) {
+  const remark = prompt("Enter rejection remark");
 
-  function rejectApplication(application) {
-    setSelectedApplication(application);
-    setRejectOpen(true);
+  if (remark === null) return;
+
+  try {
+    await api.patch(
+      `/training-applications/${application.training_id}/students/${application.student_id}?status=reject`,
+      {
+        remarks: remark,
+      }
+    );
+
+    loadApplications();
+
+  } catch (err) {
+    alert(
+      err?.response?.data?.message ||
+      err.message
+    );
   }
+}
 
   async function submitReject(remark) {
     if (!selectedApplication) return;
@@ -571,15 +583,7 @@ export default function TrainingApplications() {
                 Reject Remarks Modal
         =========================================== */}
 
-        <RejectRemarkModal
-          open={rejectOpen}
-          loading={processing !== ""}
-          onClose={() => {
-            setRejectOpen(false);
-            setSelectedApplication(null);
-          }}
-          onSubmit={submitReject}
-        />
+     
 
         {/* ===========================================
                 Summary

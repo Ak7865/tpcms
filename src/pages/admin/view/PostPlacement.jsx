@@ -13,17 +13,19 @@ import {
   Upload,
   Loader2,
   Image as ImageIcon,
+  Briefcase,
+  IndianRupee,
+  MapPin,
   Calendar,
   Award,
-  BookOpenCheck,
   ArrowLeft,
 } from "lucide-react";
 import { api } from "../../../services/api";
 
-export default function PostTraining() {
+export default function PostPlacement() {
   const navigate = useNavigate();
 
-  const imageRef = useRef(null);
+  const bannerRef = useRef(null);
 
   const [loading, setLoading] = useState(false);
 
@@ -38,6 +40,8 @@ export default function PostTraining() {
   const [form, setForm] = useState({
     title: "",
     description: "",
+    package: "",
+    location: "",
     min_cgpa: "",
     start_date: "",
     end_date: "",
@@ -71,15 +75,13 @@ export default function PostTraining() {
     e.preventDefault();
 
     setLoading(true);
-
     setError("");
-
     setSuccess("");
 
     try {
       let image_url = "";
 
-      /* Upload banner first */
+      /* Upload banner */
 
       if (bannerFile) {
         const uploadRes = await api.upload(
@@ -93,52 +95,59 @@ export default function PostTraining() {
           "";
       }
 
-      /* Create training */
+      /* Create placement */
 
-      await api.post("/trainings", {
+      await api.post("/placements", {
         ...form,
         image_url,
       });
 
-      setSuccess("Training created successfully.");
+      setSuccess("Placement created successfully.");
 
       setTimeout(() => {
         navigate(
-          "/coordinator/dashboard?view=view-trainings"
+          "/coordinator/dashboard?view=view-placements"
         );
       }, 1000);
+
     } catch (err) {
+
       setError(
         err?.response?.data?.message ||
           err.message ||
-          "Unable to create training."
+          "Unable to create placement."
       );
+
     } finally {
+
       setLoading(false);
+
     }
   }
     return (
     <DashboardShell
-      title="Post Training"
-      subtitle="Create a new training opportunity"
+      title="Post Placement"
+      subtitle="Create a new placement opportunity"
     >
       <form onSubmit={handleSubmit} className="space-y-6">
 
-        {/* Banner Upload */}
+        {/* ===========================================
+                    Banner Upload
+        =========================================== */}
 
         <Card>
 
           <CardBody>
 
             <h2 className="mb-5 text-lg font-semibold text-white">
-              Training Banner
+              Company Banner
             </h2>
 
             <div className="flex flex-col gap-6 lg:flex-row">
 
               <div
-                onClick={() => imageRef.current?.click()}
-                className="flex h-64 w-full cursor-pointer items-center justify-center rounded-xl border-2 border-dashed border-orbit-border bg-orbit-surface2 transition hover:border-orbit-primary lg:w-96"
+                onClick={() => bannerRef.current?.click()}
+                className="flex h-64 w-full cursor-pointer items-center justify-center rounded-xl border-2 border-dashed border-orbit-border bg-orbit-surface2 hover:border-orbit-primary transition lg:w-96"
               >
 
                 {preview ? (
@@ -173,7 +182,7 @@ export default function PostTraining() {
               </div>
 
               <input
-                ref={imageRef}
+                ref={bannerRef}
                 type="file"
                 hidden
                 accept="image/*"
@@ -196,7 +205,7 @@ export default function PostTraining() {
 
                     <li>• Maximum file size 5 MB</li>
 
-                    <li>• Use high-quality images</li>
+                    <li>• Use a clear company banner</li>
 
                   </ul>
 
@@ -210,24 +219,26 @@ export default function PostTraining() {
 
         </Card>
 
-        {/* Training Information */}
+        {/* ===========================================
+                    Placement Information
+        =========================================== */}
 
         <Card>
 
           <CardBody>
 
             <h2 className="mb-6 text-lg font-semibold text-white">
-              Training Information
+              Placement Information
             </h2>
 
             <div className="grid gap-5">
 
               <Input
-                label="Training Title"
+                label="Placement Title"
                 name="title"
                 value={form.title}
                 onChange={handleChange}
-                placeholder="Enter training title"
+                placeholder="Software Engineer"
                 required
               />
 
@@ -237,7 +248,7 @@ export default function PostTraining() {
                 name="description"
                 value={form.description}
                 onChange={handleChange}
-                placeholder="Training description..."
+                placeholder="Describe the placement opportunity..."
                 required
               />
 
@@ -247,17 +258,35 @@ export default function PostTraining() {
 
         </Card>
 
-        {/* Eligibility */}
+        {/* ===========================================
+                    Eligibility & Job Details
+        =========================================== */}
 
         <Card>
 
           <CardBody>
 
             <h2 className="mb-6 text-lg font-semibold text-white">
-              Eligibility & Dates
+              Job Details
             </h2>
 
             <div className="grid gap-5 md:grid-cols-2">
+
+              <Input
+                label="Package (CTC)"
+                name="package"
+                value={form.package}
+                onChange={handleChange}
+                placeholder="₹6 LPA"
+              />
+
+              <Input
+                label="Location"
+                name="location"
+                value={form.location}
+                onChange={handleChange}
+                placeholder="Bangalore"
+              />
 
               <Input
                 label="Minimum CGPA"
@@ -266,7 +295,7 @@ export default function PostTraining() {
                 name="min_cgpa"
                 value={form.min_cgpa}
                 onChange={handleChange}
-                placeholder="e.g. 6.5"
+                placeholder="6.5"
                 required
               />
 
@@ -287,7 +316,7 @@ export default function PostTraining() {
               />
 
               <Input
-                label="Last Date of Submission"
+                label="Last Date of Application"
                 type="date"
                 name="last_date_of_submission"
                 value={form.last_date_of_submission}
@@ -300,14 +329,16 @@ export default function PostTraining() {
           </CardBody>
 
         </Card>
-                {/* Training Status */}
+        {/* ===========================================
+                    Placement Status
+        =========================================== */}
 
         <Card>
 
           <CardBody>
 
             <h2 className="mb-6 text-lg font-semibold text-white">
-              Training Status
+              Placement Status
             </h2>
 
             <div className="flex items-center justify-between rounded-xl border border-orbit-border bg-orbit-surface2/40 p-5">
@@ -315,11 +346,11 @@ export default function PostTraining() {
               <div>
 
                 <h3 className="font-medium text-white">
-                  Publish Training
+                  Publish Placement
                 </h3>
 
                 <p className="mt-1 text-sm text-slate-500">
-                  Students can apply only when the training is active.
+                  Students can apply only when the placement is active.
                 </p>
 
               </div>
@@ -340,21 +371,33 @@ export default function PostTraining() {
 
         </Card>
 
-        {/* Messages */}
+        {/* Success Message */}
 
         {success && (
+
           <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-300">
+
             {success}
+
           </div>
+
         )}
+
+        {/* Error Message */}
 
         {error && (
+
           <div className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-300">
+
             {error}
+
           </div>
+
         )}
 
-        {/* Action Buttons */}
+        {/* ===========================================
+                    Action Buttons
+        =========================================== */}
 
         <Card>
 
@@ -364,12 +407,12 @@ export default function PostTraining() {
 
               <div className="flex items-center gap-2 text-sm text-slate-500">
 
-                <BookOpenCheck
+                <Briefcase
                   size={18}
                   className="text-orbit-primary"
                 />
 
-                Fill all required fields before publishing.
+                Complete all required details before publishing the placement.
 
               </div>
 
@@ -400,7 +443,7 @@ export default function PostTraining() {
                 >
                   {loading
                     ? "Creating..."
-                    : "Create Training"}
+                    : "Create Placement"}
                 </Button>
 
               </div>
