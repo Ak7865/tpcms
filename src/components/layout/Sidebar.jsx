@@ -101,8 +101,6 @@ const viewMap = {
     "Training Applications": "applications",
     Notifications: "notifications",
     "My Profile": "profile",
-    "Academic Records": "academic",
-    "My Documents": "documents",
     "Interview Letters": "letters",
   },
 };
@@ -242,8 +240,6 @@ const menuItems = {
       icon: UserRound,
       submenu: [
         "My Profile",
-        "Academic Records",
-        "My Documents",
         "Interview Letters",
       ],
     },
