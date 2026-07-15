@@ -28,7 +28,7 @@ export default function StudentDetails() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
-  const studentId = searchParams.get("id");
+  const studentId = parseInt(searchParams.get("id"));
 
   const [loading, setLoading] = useState(true);
   const [student, setStudent] = useState(null);
@@ -163,7 +163,7 @@ export default function StudentDetails() {
 
                 <div className="flex h-28 w-28 items-center justify-center rounded-full bg-gradient-to-br from-orbit-primary to-violet-600 text-4xl font-bold text-white shadow-xl">
 
-                  {getInitials(student.name)}
+                  {getInitials(student?.user_table?.name)}
 
                 </div>
 
@@ -173,7 +173,7 @@ export default function StudentDetails() {
 
                   <h1 className="text-3xl font-bold text-white">
 
-                    {student.name}
+                    {student.user_table.name}
 
                   </h1>
 

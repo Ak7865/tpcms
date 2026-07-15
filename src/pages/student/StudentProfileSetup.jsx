@@ -12,6 +12,14 @@ const mapById = (items, idKey, labelKey) =>
     return acc
   }, {})
 
+const getAssetUrl = (url) => {
+  if (!url) return '';
+  if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('data:')) {
+    return url;
+  }
+  return `http://localhost:5000${url.startsWith('/') ? url : `/${url}`}`;
+};
+
 export default function StudentProfileSetup() {
   const navigate = useNavigate()
   const [profile, setProfile] = useState(null)
@@ -180,7 +188,7 @@ export default function StudentProfileSetup() {
             </h2>
             <MediaUpload
               label="Upload profile picture"
-              value={form.image_url}
+              value={getAssetUrl(form.image_url)}
               onChange={(url) => setForm((p) => ({ ...p, image_url: url }))}
               accept="image/*"
               uploadPath="/uploads/profile"
@@ -194,7 +202,7 @@ export default function StudentProfileSetup() {
             </h2>
             <MediaUpload
               label="Upload resume"
-              value={form.resume_url}
+              value={getAssetUrl(form.resume_url)}
               onChange={(url) => setForm((p) => ({ ...p, resume_url: url }))}
               accept="image/*,application/pdf"
               uploadPath="/uploads/resume"

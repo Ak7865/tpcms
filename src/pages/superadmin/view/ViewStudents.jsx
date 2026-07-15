@@ -26,6 +26,7 @@ export default function ViewStudents() {
     const fetchStudents = async () => {
       try {
         const result = await api.get('/students/');
+        console.log(result)
         const formatted = (result.data || []).map((user, index) => ({
           id: user.user_id || index,
           roll: user.roll_no || 'N/A',

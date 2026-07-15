@@ -236,7 +236,7 @@ export default function EditStudent() {
               value={form.roll_no}
               onChange={update("roll_no")}
               required
-            />
+            />{console.log(form)}
             <Input
               label="Email"
               type="email"

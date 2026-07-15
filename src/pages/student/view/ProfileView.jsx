@@ -15,6 +15,15 @@ import {
 
 const empty = "N/A";
 
+const getAssetUrl = (url) => {
+  if (!url) return "";
+  if (url.startsWith("http://") || url.startsWith("https://") || url.startsWith("data:")) {
+    return url;
+  }
+  return `http://localhost:5000${url.startsWith("/") ? url : `/${url}`}`;
+};
+
+
 const toList = (value) => {
   if (Array.isArray(value)) return value;
   if (typeof value === "string") {
@@ -482,15 +491,15 @@ const skillLabels = Array.isArray(profile.skill)
               <MediaUpload
                 label=""
                 accept="image/*"
-                value={form.image_url || ""}
+                value={getAssetUrl(form.image_url) || ""}
                 onChange={(url) => updateField("image_url", url)}
                 uploadPath="/uploads/profile"
                 hint="Profile image, max 2 MB"
               />
             ) : profile.image_url ? (
-              <a href={profile.image_url} target="_blank" rel="noreferrer" className="block">
+              <a href={getAssetUrl(profile.image_url)} target="_blank" rel="noreferrer" className="block">
                 <img
-                  src={profile.image_url}
+                  src={getAssetUrl(profile.image_url)}
                   alt="Profile"
                   className="h-32 w-32 rounded-lg border border-orbit-border object-cover"
                 />
@@ -506,13 +515,13 @@ const skillLabels = Array.isArray(profile.skill)
               <MediaUpload
                 label=""
                 accept="image/*,application/pdf"
-                value={form.resume_url || ""}
+                value={getAssetUrl(form.resume_url) || ""}
                 onChange={(url) => updateField("resume_url", url)}
                 uploadPath="/uploads/resume"
                 hint="Resume file, max 2 MB"
               />
             ) : profile.resume_url ? (
-              <a href={profile.resume_url} target="_blank" rel="noreferrer" className="break-all text-sm text-orbit-primary-light">
+              <a href={getAssetUrl(profile.resume_url)} target="_blank" rel="noreferrer" className="break-all text-sm text-orbit-primary-light">
                 View Resume
               </a>
             ) : (

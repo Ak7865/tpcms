@@ -64,7 +64,7 @@ export default function ViewStudents() {
       const keyword = search.toLowerCase();
 
       return (
-        student.name?.toLowerCase().includes(keyword) ||
+        student.user_table?.name?.toLowerCase().includes(keyword) ||
         student.roll_no?.toLowerCase().includes(keyword) ||
         student.user_table?.email
           ?.toLowerCase()
@@ -234,7 +234,7 @@ export default function ViewStudents() {
 
                       filteredStudents.map((student) => (
                                                 <tr
-                          key={student.student_id}
+                          key={student.user_id}
                           className="border-b border-orbit-border hover:bg-white/[0.02] transition-colors"
                         >
                           {/* Student */}
@@ -245,13 +245,13 @@ export default function ViewStudents() {
 
                               <p className="font-medium text-slate-200">
 
-                                {student.name}
+                                {student.user_table.name}
 
                               </p>
 
                               <p className="text-xs text-slate-500">
 
-                                ID : {student.student_id}
+                                ID : {student.user_id}
 
                               </p>
 
@@ -325,7 +325,7 @@ export default function ViewStudents() {
                                 icon={<Eye size={14} />}
                                 onClick={() =>
                                   navigate(
-                                    `/coordinator/dashboard?view=student-details&id=${student.student_id}`
+                                    `/coordinator/dashboard?view=student-details&id=${student.user_id}`
                                   )
                                 }
                               >
