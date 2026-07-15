@@ -8,8 +8,9 @@ function getRows(res) {
 }
 
 function statusLabel(statusId) {
-  if (statusId === 1) return "Approved";
-  if (statusId === 0) return "Pending";
+  if (statusId === 1) return "Pending";
+  if (statusId === 2) return "Approved";
+  if (statusId === 3) return "Rejected";
   return "Unknown";
 }
 
@@ -22,7 +23,7 @@ function fmtDate(value) {
   });
 }
 
-export default function ApplicationsView() {
+export default function ApplicationsView({ filterType }) {
   const [trainingApps, setTrainingApps] = useState([]);
   const [placementApps, setPlacementApps] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -36,13 +37,22 @@ export default function ApplicationsView() {
       try {
         setLoading(true);
         setError("");
-        const [trainingRes, placementRes] = await Promise.all([
-          api.get("/training-applications"),
-          api.get("/placement-applications"),
-        ]);
+        const fetches = [];
+        if (filterType !== "Placement") {
+          fetches.push(api.get("/training-applications").then(getRows).catch(() => []));
+        } else {
+          fetches.push(Promise.resolve([]));
+        }
+        if (filterType !== "Training") {
+          fetches.push(api.get("/placement-applications").then(getRows).catch(() => []));
+        } else {
+          fetches.push(Promise.resolve([]));
+        }
+        
+        const [trainingsData, placementsData] = await Promise.all(fetches);
         if (!cancelled) {
-          setTrainingApps(getRows(trainingRes));
-          setPlacementApps(getRows(placementRes));
+          setTrainingApps(trainingsData);
+          setPlacementApps(placementsData);
         }
       } catch (err) {
         if (!cancelled) setError(err.message || "Failed to load applications.");
@@ -55,10 +65,10 @@ export default function ApplicationsView() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [filterType]);
 
   const rows = useMemo(() => {
-    const trainings = trainingApps.map((app) => ({
+    const trainings = filterType === "Placement" ? [] : trainingApps.map((app) => ({
       id: `training-${app.training_id}-${app.student_id}`,
       type: "Training",
       title: app.training_table?.title || `Training #${app.training_id}`,
@@ -66,7 +76,7 @@ export default function ApplicationsView() {
       date: app.date_of_submission,
       icon: BookOpenCheck,
     }));
-    const placements = placementApps.map((app) => ({
+    const placements = filterType === "Training" ? [] : placementApps.map((app) => ({
       id: `placement-${app.placement_id}-${app.student_id}`,
       type: "Placement",
       title: app.placement_table?.title || `Placement #${app.placement_id}`,
@@ -80,7 +90,7 @@ export default function ApplicationsView() {
         .toLowerCase()
         .includes(term)
     );
-  }, [trainingApps, placementApps, query]);
+  }, [trainingApps, placementApps, query, filterType]);
 
   if (loading) {
     return (
@@ -131,7 +141,11 @@ export default function ApplicationsView() {
             <tbody className="divide-y divide-orbit-border">
               {rows.map((row) => {
                 const Icon = row.icon;
-                const approved = row.status_id === 1;
+                const badgeClass = {
+                  1: "bg-amber-500/15 text-amber-400",   // Pending
+                  2: "bg-emerald-500/15 text-emerald-400", // Approved
+                  3: "bg-red-500/15 text-red-400",       // Rejected
+                }[row.status_id] || "bg-slate-500/15 text-slate-400";
                 return (
                   <tr key={row.id} className="hover:bg-white/[0.02] transition-colors">
                     <td className="px-5 py-3 text-slate-300">
@@ -147,13 +161,7 @@ export default function ApplicationsView() {
                       {fmtDate(row.date)}
                     </td>
                     <td className="px-5 py-3">
-                      <span
-                        className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${
-                          approved
-                            ? "bg-emerald-500/15 text-emerald-400"
-                            : "bg-amber-500/15 text-amber-400"
-                        }`}
-                      >
+                      <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${badgeClass}`}>
                         {statusLabel(row.status_id)}
                       </span>
                     </td>

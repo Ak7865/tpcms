@@ -19,6 +19,8 @@ export default function StudentDashboard() {
     jobs: <JobsView />,
     training: <TrainingView />,
     applications: <ApplicationsView />,
+    "placement-applications": <ApplicationsView filterType="Placement" />,
+    "training-applications": <ApplicationsView filterType="Training" />,
     notifications: <NotificationsView />,
     profile: <ProfileView />,
     letters: <InterviewLettersView />,
