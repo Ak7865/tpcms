@@ -9,6 +9,7 @@ import {
   Loader2,
   Search,
 } from "lucide-react";
+import { Card, CardBody } from "./../../../components/ui/card";
 import { motion } from "framer-motion";
 
 function asArray(value) {
@@ -182,6 +183,33 @@ export default function DashboardOverview() {
           )}
         </div>
       </div>
+      <Card
+  className="cursor-pointer hover:shadow-lg"
+  onClick={() => navigate("/student/resume")}
+>
+
+  <CardBody className="text-center">
+
+    <FileText
+      size={45}
+      className="mx-auto text-blue-600"
+    />
+
+    <h3 className="mt-3 text-lg font-semibold">
+
+      Resume Builder
+
+    </h3>
+
+    <p className="text-sm text-gray-500">
+
+      Create professional resume
+
+    </p>
+
+  </CardBody>
+
+</Card>
     </div>
   );
 }

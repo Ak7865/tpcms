@@ -9,7 +9,8 @@ import ApplicationsView from "./view/ApplicationsView";
 import NotificationsView from "./view/NotificationsView";
 import ProfileView from "./view/ProfileView";
 import InterviewLettersView from "./view/InterviewLettersView";
-
+import Resume from '../../utils/resumeBuilder';
+import ResumePreview from './../components/Resume';
 export default function StudentDashboard() {
   const [searchParams] = useSearchParams();
   const view = searchParams.get("view");

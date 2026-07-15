@@ -176,3 +176,46 @@ html:not(.dark) .border-orbit-border { border-color: var(--border); }
 /* Nav active indicator in light mode — make it readable */
 html:not(.dark) .bg-orbit-primary\/15 { background-color: rgba(124, 58, 237, 0.12) !important; }
 html:not(.dark) .bg-orbit-primary\/10 { background-color: rgba(124, 58, 237, 0.10) !important; }
+@media print {
+
+  body {
+    background: white !important;
+  }
+
+  .no-print {
+    display: none !important;
+  }
+
+  @page {
+    size: A4;
+    margin: 10mm;
+  }
+
+}
+.resume-section{
+    page-break-inside: avoid;
+    break-inside: avoid;
+    margin-bottom:16px;
+}
+
+.resume-header{
+    page-break-after: avoid;
+}
+
+@page{
+    size:A4;
+    margin:12mm;
+}
+
+@media print{
+
+    body{
+        margin:0;
+        background:#fff;
+    }
+
+    .no-print{
+        display:none !important;
+    }
+
+}

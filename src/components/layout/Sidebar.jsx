@@ -102,6 +102,7 @@ const viewMap = {
     Notifications: "notifications",
     "My Profile": "profile",
     "Interview Letters": "letters",
+    "Resume Builder": "resume",
   },
 };
 
@@ -242,6 +243,11 @@ const menuItems = {
         "Interview Letters",
       ],
     },
+    {
+      title:"Resume Builder",
+      icon:FileText,
+      
+    }
   ],
 };
 
@@ -297,6 +303,7 @@ function MenuItem({
   openMenu,
   toggleMenu,
   navigateTo,
+  navigate,
   onNavClick,
 }) {
   const Icon = item.icon;
@@ -309,14 +316,21 @@ function MenuItem({
     hasSubmenu &&
     item.submenu.some((sub) => activeView === viewMap[role]?.[sub]);
 
-  const handleClick = () => {
-    if (hasSubmenu) {
-      toggleMenu(item.title);
-    } else {
-      navigateTo(item.title);
-      onNavClick();
-    }
-  };
+ const handleClick = () => {
+
+  if (hasSubmenu) {
+
+    toggleMenu(item.title);
+
+    return;
+
+  }
+
+  navigateTo(item.title, item.path);
+
+  onNavClick();
+
+};
 
   return (
     <div>
@@ -431,11 +445,20 @@ export default function Sidebar({ role = "Super Admin" }) {
 
   const effectiveCollapsed = collapsed && !isMobile;
 
-  const navigateTo = (label) => {
-    const view = viewMap[role]?.[label];
-    if (view) navigate(`${dashboardPaths[role]}?view=${view}`);
-  };
+  const navigateTo = (label, path = null) => {
 
+  if (path) {
+    navigate(path);
+    return;
+  }
+
+  const view = viewMap[role]?.[label];
+
+  if (view) {
+    navigate(`${dashboardPaths[role]}?view=${view}`);
+  }
+
+};
   const toggleMenu = (menu) => {
     setOpenMenu(openMenu === menu ? null : menu);
   };

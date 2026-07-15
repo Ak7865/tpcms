@@ -3,7 +3,7 @@ const BASE_URL = 'http://localhost:5000'
 function getToken() {
   try {
     const auth = JSON.parse(localStorage.getItem('auth_user') || '{}')
-    return auth?.user?.auth_token || auth?.data?.auth_token || ''
+    return auth?.token || auth?.user?.auth_token || auth?.data?.auth_token || ''
   } catch {
     return ''
   }

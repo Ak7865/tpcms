@@ -92,10 +92,6 @@ export default function ChangePassword() {
     >
       <div className="mx-auto max-w-3xl space-y-6">
 
-        {/* ===========================================
-                    Change Password Form
-        =========================================== */}
-
         <Card>
 
           <CardBody>
