@@ -13,6 +13,8 @@ import StudentDashboard from './pages/student/StudentDashboard';
 import CompanyProfileSetup from './pages/company/CompanyProfileSetup';
 import StudentProfileSetup from './pages/student/StudentProfileSetup';
 import { ProtectedRoute } from './routes/ProtectedRoute';
+import Resume from './utils/resumeBuilder'; 
+import ResumePreview from './pages/components/Resume';
 import { AppRoute } from './routes/AppRoute';
 
 export default function App() {
@@ -77,6 +79,18 @@ export default function App() {
             }
           />
         </Route>
+        <Route
+          path="/student/resume"
+          element={<Resume/>
+
+          }
+        />
+        <Route
+          path="/student/resume-preview"
+          element={<ResumePreview/>}
+        />
+
+
       </Route>
 
       {/* Fallback */}
