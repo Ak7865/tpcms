@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { Mail, Lock, User, ArrowRight, Eye, EyeOff, Building2, Globe, Briefcase, Phone } from 'lucide-react'
@@ -17,6 +17,21 @@ export function SignUpPage() {
 
   const [mobile_no, setMobile_no] = useState('')
   const [password, setPassword] = useState('')
+  const [sectors, setSectors] = useState([])
+  const [sectorId, setSectorId] = useState('')
+
+  useEffect(() => {
+    async function fetchSectors() {
+      try {
+        const res = await api.get('/masters/sectors')
+        const data = res?.data?.data ?? res?.data ?? []
+        setSectors(data)
+      } catch (err) {
+        console.error('Failed to load sectors', err)
+      }
+    }
+    fetchSectors()
+  }, [])
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -28,6 +43,7 @@ export function SignUpPage() {
         email,
         mobile_no,
         password,
+        sector_id: sectorId ? Number(sectorId) : undefined,
       })
       console.log('Registration successful')
       setSubmitted(true)
@@ -109,8 +125,29 @@ export function SignUpPage() {
           </div>
           <Input label="Business Email" type="email" placeholder="hr@techcorp.com" prefix={<Mail className="w-3.5 h-3.5" />} value={email} onChange={(e) => setEmail(e.target.value)} required />
           <div className="grid grid-cols-2 gap-3">
-            <Input label="Phone Number" type="tel" placeholder="+91 98765 43210" prefix={<Phone className="w-3.5 h-3.5" />} value={mobile_no} onChange={(e) => setMobile_no(e.target.value)} required />
-            <Input label="Industry" type="text" placeholder="IT / Software" prefix={<Briefcase className="w-3.5 h-3.5" />} required />
+            <Input label="Phone Number" type="tel" placeholder="9876543210" prefix={<Phone className="w-3.5 h-3.5" />} value={mobile_no} onChange={(e) => setMobile_no(e.target.value)} required />
+            <div className="w-full">
+              <label className="block text-xs font-medium text-slate-400 mb-1.5">
+                Industry Sector
+              </label>
+              <div className="flex items-center gap-2 h-9 rounded-lg border bg-orbit-surface2 px-3 text-sm border-orbit-border focus-within:border-orbit-primary focus-within:ring-1 focus-within:ring-orbit-primary/30 transition-colors relative">
+                <span className="text-slate-500 flex-shrink-0"><Briefcase className="w-3.5 h-3.5" /></span>
+                <select
+                  value={sectorId}
+                  onChange={(e) => setSectorId(e.target.value)}
+                  required
+                  className="flex-1 bg-transparent text-slate-200 outline-none min-w-0 appearance-none cursor-pointer text-xs pr-6"
+                >
+                  <option value="" className="bg-orbit-surface">Select Sector</option>
+                  {sectors.map((sec) => (
+                    <option key={sec.sector_id} value={sec.sector_id} className="bg-orbit-surface">
+                      {sec.sector_name}
+                    </option>
+                  ))}
+                </select>
+                <div className="absolute right-3 pointer-events-none border-l-4 border-r-4 border-t-4 border-transparent border-t-slate-500 w-0 h-0" />
+              </div>
+            </div>
           </div>
           <Input label="Company Website (Optional)" type="url" placeholder="https://techcorp.com" prefix={<Globe className="w-3.5 h-3.5" />} />
           <Input
