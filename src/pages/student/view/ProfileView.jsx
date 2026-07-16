@@ -200,6 +200,7 @@ export default function ProfileView() {
         mobile_no: form.mobile_no?.trim() || undefined,
         gender_id: form.gender_id ? Number(form.gender_id) : undefined,
         has_backlog: form.has_backlog,
+        date_of_birth: form.date_of_birth || undefined,
         cgpa: form.cgpa === "" ? undefined : Number(form.cgpa),
         tenth_division_id: form.tenth_division_id ? Number(form.tenth_division_id) : undefined,
         twelfth_division_id: form.twelfth_division_id ? Number(form.twelfth_division_id) : undefined,
@@ -244,6 +245,13 @@ const skillLabels = Array.isArray(profile.skill)
     { label: "Email", value: email, icon: Mail },
     { label: "Mobile No", field: "mobile_no", value: mobile, icon: Phone, editable: true },
     { label: "Age", value: age },
+    {
+  label: "Date of Birth",
+  field: "date_of_birth",
+  value: profile.date_of_birth ? new Date(profile.date_of_birth).toLocaleDateString() : empty,
+  type: "date",
+  editable: true
+    },
 {
   label: "Gender",
   field: "gender_id",

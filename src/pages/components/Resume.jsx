@@ -1,19 +1,22 @@
-import { useRef } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
-import {useReactToPrint} from 'react-to-print';
+import {useRef, useState} from "react";
+import {useLocation, useNavigate} from "react-router-dom";
+import html2canvas from "html2canvas-pro";
+import jsPDF from "jspdf";
+import {api} from "./../../services/api";
 import { Link } from "lucide-react";
-import DashboardShell from "../../components/DashboardShell";
-import { Card, CardBody, Button } from "../../components/ui";
-
+import DashboardShell from "./../../components/DashboardShell";
+import {Card,CardBody,Button} from "./../../components/ui";
 import {
   ArrowLeft,
   Download,
-  Printer,
   Mail,
   Phone,
   GraduationCap,
   Globe,
+  Loader2,
+  Save,
 } from "lucide-react";
+
 
 export default function ResumePreview() {
   const navigate = useNavigate();
@@ -21,6 +24,10 @@ export default function ResumePreview() {
   const location = useLocation();
 
   const resumeRef = useRef(null);
+
+  const [downloading, setDownloading] = useState(false);
+
+  const [saving, setSaving] = useState(false);
 
   const { student, form } = location.state || {};
   function hasValue(value) {
@@ -56,11 +63,73 @@ export default function ResumePreview() {
   }
 
  
-    const handlePrint = useReactToPrint({
-  contentRef: resumeRef,
-  documentTitle: `${student.name}-Resume`,
-});
-  
+async function generatePdfBlob(){
+  const element = resumeRef.current;
+  const canvas= await html2canvas(element,{
+    scale: 2,
+    useCORS: true,
+    backgroundColor: "#ffffff",
+    logging: false,
+  });
+  const pdf = new jsPDF({
+    orientation: "portrait",
+    unit:"mm",
+    format: "a4",
+  });
+  const pdfWidth = 210;
+  const pdfHeight = 297;
+  const imgWidth=pdfWidth;
+  const imgHeight=(canvas.height * imgWidth) / canvas.width;
+  const imgData = canvas.toDataURL("image/png");
+  let  heightLeft = imgHeight;
+  let position = 0;
+  pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
+  heightLeft -= pdfHeight;
+  while (heightLeft > 0) {
+    position = heightLeft - imgHeight;
+    pdf.addPage();
+    pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
+    heightLeft -= pdfHeight;
+  }
+  return pdf.output("blob");
+}  
+async function downloadPDF() {
+  try{
+    setDownloading(true);
+    const blob = await generatePdfBlob();
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `${student.name}_resume.pdf`;
+    link.click();
+    URL.revokeObjectURL(url);
+  } catch(err){
+    console.error("Error generating PDF:", err);
+    alert("Failed to generate PDF. Please try again.");
+  } finally {
+    setDownloading(false);
+  }
+}
+async function saveResume() {
+  try{
+    setSaving(true);
+    const blob = await generatePdfBlob();
+    const file = new File([blob], `${student.name}_resume.pdf`, { type: "application/pdf" });
+    const uploadRes = await api.upload("/uploads/resume", file);
+    const resumeUrl = uploadRes.fileUrl || uploadRes?.data?.fileUrl || uploadRes?.fileUrl || uploadRes?.data?.data?.fileUrl;
+    if(!resumeUrl){
+      throw new Error("Failed to get resume URL from upload response.");
+    }
+    await api.put("/students/me", { resume_url: resumeUrl });
+    student.resume_url = resumeUrl;
+    alert("Resume saved successfully!");
+  } catch(err){
+    console.error("Error saving resume:", err);
+    alert(err?.response?.data?.message || "Failed to save resume. Please try again.");
+  } finally {
+    setSaving(false);
+  }
+}
 
   return (
     <DashboardShell title="Resume Preview" subtitle="Professional ATS Resume">
@@ -74,10 +143,20 @@ export default function ResumePreview() {
         </Button>
 
       <Button
-  icon={<Download size={16} />}
-  onClick={handlePrint}
+      disabled={downloading}
+  icon={downloading?<Loader2 className="animate-spin" size={16}/> : <Download size={16} />}
+  onClick={downloadPDF}
 >
-  Download PDF
+{downloading ? "Downloading..." : "Download PDF"}
+</Button>
+<Button
+  disabled={saving}
+  icon={saving?<Loader2 className="animate-spin" size={16}/> : <Save size={16} />}
+  onClick={saveResume}
+>
+{saving ? "Saving..." : "Save Resume"}
+
+
 </Button>
 
       </div>
