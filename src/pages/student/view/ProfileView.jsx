@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import api from "../../../services/api";
+import DatePicker from "react-datepicker";
 import MediaUpload from "../../../components/ui/MediaUpload";
 import {
   AlertCircle,
@@ -17,12 +18,15 @@ const empty = "N/A";
 
 const getAssetUrl = (url) => {
   if (!url) return "";
-  if (url.startsWith("http://") || url.startsWith("https://") || url.startsWith("data:")) {
+  if (
+    url.startsWith("http://") ||
+    url.startsWith("https://") ||
+    url.startsWith("data:")
+  ) {
     return url;
   }
   return `http://localhost:5000${url.startsWith("/") ? url : `/${url}`}`;
 };
-
 
 const toList = (value) => {
   if (Array.isArray(value)) return value;
@@ -45,7 +49,8 @@ const findIdByLabel = (items, idKey, labelKey, label) => {
   if (!label) return "";
   const found = items.find(
     (item) =>
-      String(item[labelKey] || "").toLowerCase() === String(label).toLowerCase()
+      String(item[labelKey] || "").toLowerCase() ===
+      String(label).toLowerCase(),
   );
   return found?.[idKey] || "";
 };
@@ -81,14 +86,21 @@ export default function ProfileView() {
   const [message, setMessage] = useState("");
   const [skillDraft, setSkillDraft] = useState("");
 
-  const lookups = useMemo(() => ({
-    categories: mapById(meta.categories, "category_id", "category"),
-    departments: mapById(meta.departments, "department_id", "department_name"),
-    divisions: mapById(meta.divisions, "division_id", "division"),
-    genders: mapById(meta.genders, "gender_id", "gender"),
-    semesters: mapById(meta.semesters, "semester_id", "semester"),
-    skills: mapById(meta.skills, "skill_id", "skill"),
-  }), [meta]);
+  const lookups = useMemo(
+    () => ({
+      categories: mapById(meta.categories, "category_id", "category"),
+      departments: mapById(
+        meta.departments,
+        "department_id",
+        "department_name",
+      ),
+      divisions: mapById(meta.divisions, "division_id", "division"),
+      genders: mapById(meta.genders, "gender_id", "gender"),
+      semesters: mapById(meta.semesters, "semester_id", "semester"),
+      skills: mapById(meta.skills, "skill_id", "skill"),
+    }),
+    [meta],
+  );
 
   const loadProfile = async () => {
     setLoading(true);
@@ -110,17 +122,19 @@ export default function ProfileView() {
         api.get("/genders/").catch(() => ({ data: [] })),
         api.get("/semesters/").catch(() => ({ data: [] })),
         api.get("/skills/").catch(() => ({ data: [] })),
-        
       ]);
       const nextProfile = profileRes?.data || null;
       setProfile(nextProfile);
-      const categoryList = Array.isArray(categories?.data) ? categories.data : [];
+      const categoryList = Array.isArray(categories?.data)
+        ? categories.data
+        : [];
       const divisionList = Array.isArray(divisions?.data) ? divisions.data : [];
       const genderList = Array.isArray(genders?.data) ? genders.data : [];
       setForm({
         email: nextProfile?.email || nextProfile?.user_table?.email || "",
         password: "",
-        mobile_no: nextProfile?.mobile_no || nextProfile?.user_table?.mobile_no || "",
+        mobile_no:
+          nextProfile?.mobile_no || nextProfile?.user_table?.mobile_no || "",
         gender_id:
           nextProfile?.gender_id ||
           findIdByLabel(genderList, "gender_id", "gender", nextProfile?.gender),
@@ -128,17 +142,32 @@ export default function ProfileView() {
         has_backlog: Boolean(nextProfile?.has_backlog),
         tenth_division_id:
           nextProfile?.tenth_division_id ||
-          findIdByLabel(divisionList, "division_id", "division", nextProfile?.tenth_division),
+          findIdByLabel(
+            divisionList,
+            "division_id",
+            "division",
+            nextProfile?.tenth_division,
+          ),
         twelfth_division_id:
           nextProfile?.twelfth_division_id ||
-          findIdByLabel(divisionList, "division_id", "division", nextProfile?.twelfth_division),
+          findIdByLabel(
+            divisionList,
+            "division_id",
+            "division",
+            nextProfile?.twelfth_division,
+          ),
         category_id:
           nextProfile?.category_id ||
-          findIdByLabel(categoryList, "category_id", "category", nextProfile?.category),
+          findIdByLabel(
+            categoryList,
+            "category_id",
+            "category",
+            nextProfile?.category,
+          ),
         resume_url: nextProfile?.resume_url || "",
         image_url: nextProfile?.image_url || "",
         skills: toList(nextProfile?.skill).map((skill) =>
-          typeof skill === "object" ? skill.skill : skill
+          typeof skill === "object" ? skill.skill : skill,
         ),
       });
       setMeta({
@@ -202,19 +231,25 @@ export default function ProfileView() {
         has_backlog: form.has_backlog,
         date_of_birth: form.date_of_birth || undefined,
         cgpa: form.cgpa === "" ? undefined : Number(form.cgpa),
-        tenth_division_id: form.tenth_division_id ? Number(form.tenth_division_id) : undefined,
-        twelfth_division_id: form.twelfth_division_id ? Number(form.twelfth_division_id) : undefined,
+        tenth_division_id: form.tenth_division_id
+          ? Number(form.tenth_division_id)
+          : undefined,
+        twelfth_division_id: form.twelfth_division_id
+          ? Number(form.twelfth_division_id)
+          : undefined,
         category_id: form.category_id ? Number(form.category_id) : undefined,
         resume_url: form.resume_url || undefined,
         image_url: form.image_url || undefined,
-        skills: (form.skills || []).map((skill) => String(skill).trim()).filter(Boolean),
+        skills: (form.skills || [])
+          .map((skill) => String(skill).trim())
+          .filter(Boolean),
       };
 
       await api.put(
         "/students/me",
         Object.fromEntries(
-          Object.entries(payload).filter(([, value]) => value !== undefined)
-        )
+          Object.entries(payload).filter(([, value]) => value !== undefined),
+        ),
       );
       setMessage("Profile updated successfully");
       setEditing(false);
@@ -226,70 +261,83 @@ export default function ProfileView() {
     }
   };
 
-  if (loading) return <div className="text-sm text-slate-500">Loading profile...</div>;
+  if (loading)
+    return <div className="text-sm text-slate-500">Loading profile...</div>;
   if (error) return <div className="text-sm text-red-400">{error}</div>;
-  if (!profile) return <div className="text-sm text-slate-500">Profile not found.</div>;
+  if (!profile)
+    return <div className="text-sm text-slate-500">Profile not found.</div>;
 
   const email = profile.email || profile.user_table?.email || empty;
   const mobile = profile.mobile_no || profile.user_table?.mobile_no || empty;
   const age = calculateAge(profile.date_of_birth);
-const skillLabels = Array.isArray(profile.skill)
-  ? profile.skill.map((s) =>
-      typeof s === "object" ? s.skill : s
-    )
-  : [];
+  const skillLabels = Array.isArray(profile.skill)
+    ? profile.skill.map((s) => (typeof s === "object" ? s.skill : s))
+    : [];
 
   const personalDetails = [
     { label: "Name", value: profile.name, icon: User },
     { label: "Roll No", value: profile.roll_no, icon: GraduationCap },
     { label: "Email", value: email, icon: Mail },
-    { label: "Mobile No", field: "mobile_no", value: mobile, icon: Phone, editable: true },
+    {
+      label: "Mobile No",
+      field: "mobile_no",
+      value: mobile,
+      icon: Phone,
+      editable: true,
+    },
     { label: "Age", value: age },
     {
-  label: "Date of Birth",
-  field: "date_of_birth",
-  value: profile.date_of_birth ? new Date(profile.date_of_birth).toLocaleDateString() : empty,
-  type: "date",
-  editable: true
+      label: "Date of Birth",
+      field: "date_of_birth",
+      value: profile.date_of_birth
+        ? new Date(profile.date_of_birth).toLocaleDateString()
+        : empty,
+      type: "date",
+      editable: true,
     },
-{
-  label: "Gender",
-  field: "gender_id",
-  value: profile.gender,
-  type: "gender",
-  editable: true
-},
-   {
-  label: "Department",
-  value: profile.department
-},
-{
-  label: "Semester",
-  value: profile.semester
-},
+    {
+      label: "Gender",
+      field: "gender_id",
+      value: profile.gender,
+      type: "gender",
+      editable: true,
+    },
+    {
+      label: "Department",
+      value: profile.department,
+    },
+    {
+      label: "Semester",
+      value: profile.semester,
+    },
   ];
 
   const academicDetails = [
     { label: "CGPA", field: "cgpa", value: profile.cgpa, type: "number" },
-    { label: "Backlog", field: "has_backlog", value: profile.has_backlog ? "Yes" : "No", type: "checkbox" },
-{
-  label: "10th Division",
-  field: "tenth_division_id",
-  value: profile.tenth_division,
-  type: "division"
-},
-{
-  label: "12th Division",
-  field: "twelfth_division_id",
-  value: profile.twelfth_division,
-  type: "division"
-},
-  {
-  label: "Category",
-  field: "category_id",
-  value: profile.category,
-  type: "category"
-},
+    {
+      label: "Backlog",
+      field: "has_backlog",
+      value: profile.has_backlog ? "Yes" : "No",
+      type: "checkbox",
+    },
+    {
+      label: "10th Division",
+      field: "tenth_division_id",
+      value: profile.tenth_division,
+      type: "division",
+    },
+    {
+      label: "12th Division",
+      field: "twelfth_division_id",
+      value: profile.twelfth_division,
+      type: "division",
+    },
+    {
+      label: "Category",
+      field: "category_id",
+      value: profile.category,
+      type: "category",
+    },
     { label: "Graduate", value: profile.is_graduate ? "Yes" : "No" },
   ];
 
@@ -298,7 +346,9 @@ const skillLabels = Array.isArray(profile.skill)
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold text-slate-100">My Profile</h1>
-          <p className="text-sm text-slate-500 mt-1">Your student, academic, and document details.</p>
+          <p className="text-sm text-slate-500 mt-1">
+            Your student, academic, and document details.
+          </p>
         </div>
         <button
           type="button"
@@ -318,12 +368,17 @@ const skillLabels = Array.isArray(profile.skill)
       )}
 
       <section className="rounded-xl border border-orbit-border bg-orbit-surface p-5">
-        <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-slate-400">Personal Details</h2>
+        <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-slate-400">
+          Personal Details
+        </h2>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {personalDetails.map((item) => {
             const Icon = item.icon || BookOpen;
             return (
-              <div key={item.label} className="rounded-lg border border-orbit-border bg-orbit-bg/40 p-4">
+              <div
+                key={item.label}
+                className="rounded-lg border border-orbit-border bg-orbit-bg/40 p-4"
+              >
                 <div className="mb-2 flex items-center gap-2 text-xs text-slate-500">
                   <Icon className="h-4 w-4" />
                   {item.label}
@@ -341,6 +396,26 @@ const skillLabels = Array.isArray(profile.skill)
                       </option>
                     ))}
                   </select>
+                ): editing && item.editable && item.type === "date" ?(
+                    <DatePicker
+    selected={
+      form.date_of_birth ? new Date(form.date_of_birth) : null
+    }
+    onChange={(date) =>
+      updateField(
+        "date_of_birth",
+        date ? date.toISOString().split("T")[0] : ""
+      )
+    }
+    dateFormat="dd/MM/yyyy"
+    showYearDropdown
+    scrollableYearDropdown
+    yearDropdownItemNumber={100}
+    maxDate={new Date()}
+    placeholderText="Select Date of Birth"
+    className="w-full rounded-lg border border-orbit-border bg-orbit-surface2 px-3 py-2 text-sm text-slate-200 focus:border-blue-500 focus:outline-none"
+    popperClassName="z-50"
+  />
                 ) : editing && item.editable ? (
                   <input
                     value={form[item.field] || ""}
@@ -348,7 +423,9 @@ const skillLabels = Array.isArray(profile.skill)
                     className="w-full rounded-lg border border-orbit-border bg-orbit-surface2 px-3 py-2 text-sm text-slate-200"
                   />
                 ) : (
-                  <p className="break-words text-sm font-medium text-slate-100">{item.value || empty}</p>
+                  <p className="break-words text-sm font-medium text-slate-100">
+                    {item.value || empty}
+                  </p>
                 )}
               </div>
             );
@@ -357,19 +434,28 @@ const skillLabels = Array.isArray(profile.skill)
       </section>
 
       <section className="rounded-xl border border-orbit-border bg-orbit-surface p-5">
-        <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-slate-400">Academic Details</h2>
+        <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-slate-400">
+          Academic Details
+        </h2>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {academicDetails.map((item) => (
-            <div key={item.label} className="rounded-lg border border-orbit-border bg-orbit-bg/40 p-4">
+            <div
+              key={item.label}
+              className="rounded-lg border border-orbit-border bg-orbit-bg/40 p-4"
+            >
               <p className="mb-2 text-xs text-slate-500">{item.label}</p>
               {!editing || !item.field ? (
-                <p className="text-sm font-medium text-slate-100">{item.value ?? empty}</p>
+                <p className="text-sm font-medium text-slate-100">
+                  {item.value ?? empty}
+                </p>
               ) : item.type === "checkbox" ? (
                 <label className="inline-flex items-center gap-2 text-sm text-slate-200">
                   <input
                     type="checkbox"
                     checked={form.has_backlog}
-                    onChange={(e) => updateField("has_backlog", e.target.checked)}
+                    onChange={(e) =>
+                      updateField("has_backlog", e.target.checked)
+                    }
                   />
                   Has backlog
                 </label>
@@ -381,7 +467,12 @@ const skillLabels = Array.isArray(profile.skill)
                 >
                   <option value="">Select division</option>
                   {meta.divisions.map((division) => (
-                    <option key={division.division_id} value={division.division_id}>{division.division}</option>
+                    <option
+                      key={division.division_id}
+                      value={division.division_id}
+                    >
+                      {division.division}
+                    </option>
                   ))}
                 </select>
               ) : item.type === "category" ? (
@@ -392,7 +483,12 @@ const skillLabels = Array.isArray(profile.skill)
                 >
                   <option value="">Select category</option>
                   {meta.categories.map((category) => (
-                    <option key={category.category_id} value={category.category_id}>{category.category}</option>
+                    <option
+                      key={category.category_id}
+                      value={category.category_id}
+                    >
+                      {category.category}
+                    </option>
                   ))}
                 </select>
               ) : (
@@ -409,89 +505,89 @@ const skillLabels = Array.isArray(profile.skill)
       </section>
 
       <section className="rounded-xl border border-orbit-border bg-orbit-surface p-5">
-        <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-slate-400">Skills & Documents</h2>
+        <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-slate-400">
+          Skills & Documents
+        </h2>
         <div className="grid gap-4 lg:grid-cols-3">
-    <div className="rounded-lg border border-orbit-border bg-orbit-bg/40 p-4 lg:col-span-3">
-  <p className="mb-3 text-xs text-slate-500">Skills</p>
+          <div className="rounded-lg border border-orbit-border bg-orbit-bg/40 p-4 lg:col-span-3">
+            <p className="mb-3 text-xs text-slate-500">Skills</p>
 
-  {editing ? (
-    <div className="space-y-4">
-      <div className="flex flex-wrap gap-2">
-        {(form.skills || []).map((skill) => (
-          <span
-            key={skill}
-            className="inline-flex items-center gap-2 rounded-full bg-orbit-primary/10 px-3 py-1 text-xs text-orbit-primary-light"
-          >
-            {skill}
-            <button
-              type="button"
-              onClick={() => removeSkill(skill)}
-              className="text-slate-400 hover:text-red-300"
-              aria-label={`Remove ${skill}`}
-            >
-              <X className="h-3 w-3" />
-            </button>
-          </span>
-        ))}
-      </div>
-      <div className="flex gap-2">
-        <input
-          value={skillDraft}
-          onChange={(e) => setSkillDraft(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") {
-              e.preventDefault();
-              addSkill();
-            }
-          }}
-          placeholder="Add a skill, e.g. React"
-          className="min-w-0 flex-1 rounded-lg border border-orbit-border bg-orbit-surface2 px-3 py-2 text-sm text-slate-200"
-        />
-        <button
-          type="button"
-          onClick={addSkill}
-          className="rounded-lg bg-orbit-primary px-4 py-2 text-sm font-medium text-white"
-        >
-          Add
-        </button>
-      </div>
-      <div className="flex flex-wrap gap-2">
-        {meta.skills.map((skill) => {
-          const active = form.skills?.includes(skill.skill);
-          return (
-            <button
-              key={skill.skill_id}
-              type="button"
-              onClick={() => toggleSkill(skill.skill)}
-              className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
-                active
-                  ? "bg-orbit-primary text-white"
-                  : "border border-orbit-border bg-orbit-surface2 text-slate-400 hover:text-slate-200"
-              }`}
-            >
-              {skill.skill}
-            </button>
-          );
-        })}
-      </div>
-    </div>
-  ) : skillLabels.length > 0 ? (
-    <div className="flex flex-wrap gap-2">
-      {skillLabels.map((skill) => (
-        <span
-          key={skill}
-          className="rounded-full bg-orbit-primary/10 px-3 py-1 text-xs text-orbit-primary-light"
-        >
-          {skill}
-        </span>
-      ))}
-    </div>
-  ) : (
-    <p className="text-sm text-slate-500">
-      No skills added.
-    </p>
-  )}
-</div>
+            {editing ? (
+              <div className="space-y-4">
+                <div className="flex flex-wrap gap-2">
+                  {(form.skills || []).map((skill) => (
+                    <span
+                      key={skill}
+                      className="inline-flex items-center gap-2 rounded-full bg-orbit-primary/10 px-3 py-1 text-xs text-orbit-primary-light"
+                    >
+                      {skill}
+                      <button
+                        type="button"
+                        onClick={() => removeSkill(skill)}
+                        className="text-slate-400 hover:text-red-300"
+                        aria-label={`Remove ${skill}`}
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </span>
+                  ))}
+                </div>
+                <div className="flex gap-2">
+                  <input
+                    value={skillDraft}
+                    onChange={(e) => setSkillDraft(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        addSkill();
+                      }
+                    }}
+                    placeholder="Add a skill, e.g. React"
+                    className="min-w-0 flex-1 rounded-lg border border-orbit-border bg-orbit-surface2 px-3 py-2 text-sm text-slate-200"
+                  />
+                  <button
+                    type="button"
+                    onClick={addSkill}
+                    className="rounded-lg bg-orbit-primary px-4 py-2 text-sm font-medium text-white"
+                  >
+                    Add
+                  </button>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {meta.skills.map((skill) => {
+                    const active = form.skills?.includes(skill.skill);
+                    return (
+                      <button
+                        key={skill.skill_id}
+                        type="button"
+                        onClick={() => toggleSkill(skill.skill)}
+                        className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
+                          active
+                            ? "bg-orbit-primary text-white"
+                            : "border border-orbit-border bg-orbit-surface2 text-slate-400 hover:text-slate-200"
+                        }`}
+                      >
+                        {skill.skill}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            ) : skillLabels.length > 0 ? (
+              <div className="flex flex-wrap gap-2">
+                {skillLabels.map((skill) => (
+                  <span
+                    key={skill}
+                    className="rounded-full bg-orbit-primary/10 px-3 py-1 text-xs text-orbit-primary-light"
+                  >
+                    {skill}
+                  </span>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-slate-500">No skills added.</p>
+            )}
+          </div>
 
           <div className="rounded-lg border border-orbit-border bg-orbit-bg/40 p-4">
             <p className="mb-2 text-xs text-slate-500">Profile Image</p>
@@ -505,7 +601,12 @@ const skillLabels = Array.isArray(profile.skill)
                 hint="Profile image, max 2 MB"
               />
             ) : profile.image_url ? (
-              <a href={getAssetUrl(profile.image_url)} target="_blank" rel="noreferrer" className="block">
+              <a
+                href={getAssetUrl(profile.image_url)}
+                target="_blank"
+                rel="noreferrer"
+                className="block"
+              >
                 <img
                   src={getAssetUrl(profile.image_url)}
                   alt="Profile"
@@ -529,7 +630,12 @@ const skillLabels = Array.isArray(profile.skill)
                 hint="Resume file, max 2 MB"
               />
             ) : profile.resume_url ? (
-              <a href={getAssetUrl(profile.resume_url)} target="_blank" rel="noreferrer" className="break-all text-sm text-orbit-primary-light">
+              <a
+                href={getAssetUrl(profile.resume_url)}
+                target="_blank"
+                rel="noreferrer"
+                className="break-all text-sm text-orbit-primary-light"
+              >
                 View Resume
               </a>
             ) : (
@@ -550,7 +656,10 @@ const skillLabels = Array.isArray(profile.skill)
             <Save className="h-4 w-4" />
             {saving ? "Saving..." : "Save Changes"}
           </button>
-          <p className="text-xs text-slate-500">Name, roll no, department, and semester are display-only for this API.</p>
+          <p className="text-xs text-slate-500">
+            Name, roll no, department, and semester are display-only for this
+            API.
+          </p>
         </div>
       )}
     </div>

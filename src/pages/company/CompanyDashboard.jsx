@@ -16,6 +16,7 @@ import ManageTraining from './view/ManageTraining'
 import Recruitment from './view/Recruitment'
 import ShortlistedCandidates from './view/ShortlistedCandidates'
 import ScheduleInterviews from './view/ScheduleInterviews'
+import SettingsPage from '../settings/SettingsPage'
 import api from '@/services/api'
 
 const viewComponents = {
@@ -27,16 +28,7 @@ const viewComponents = {
   'manage-jobs': ManageJobs,
   'manage-training': ManageTraining,
   'profile': CompanyProfile,
-  settings: () => (
-    <Card>
-      <CardBody>
-        <div className="flex items-center gap-2 text-slate-400">
-          <AlertCircle size={18} />
-          <span className="text-sm">Settings placeholder.</span>
-        </div>
-      </CardBody>
-    </Card>
-  ),
+  settings: SettingsPage,
 }
 
 const colorClasses = {

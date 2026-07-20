@@ -78,6 +78,7 @@ const viewMap = {
   "Shared Notes": "shared-notes",
 
   "Change Password": "change-password",
+  "Settings": "settings",
 },
   Company: {
     Dashboard: "dashboard",
@@ -89,7 +90,7 @@ const viewMap = {
     "Student Applications": "recruitment",
     "Shortlisted Candidates": "shortlisted",
     "Schedule Interviews": "interview",
-    Settings: "profile",
+    Settings: "settings",
   },
   Student: {
     Dashboard: "dashboard",
@@ -100,9 +101,11 @@ const viewMap = {
     "Placement Applications": "placement-applications",
     "Training Applications": "training-applications",
     Notifications: "notifications",
+    "Shared Notes": "shared_notes",
     "My Profile": "profile",
     "Interview Letters": "letters",
     "Resume Builder": "resume",
+    Settings: "settings",
   },
 };
 
@@ -195,6 +198,10 @@ const menuItems = {
     title: "Change Password",
     icon: Settings,
   },
+  {
+    title: "Settings",
+    icon: Settings,
+  },
 ],
 
   Company: [
@@ -219,6 +226,7 @@ const menuItems = {
         "Schedule Interviews",
       ],
     },
+    { title: "Settings", icon: Settings },
   ],
 
   Student: [
@@ -234,7 +242,9 @@ const menuItems = {
       submenu: ["Training Programs", "Training Applications"],
     },
     { title: "My Applications", icon: FileText },
+    { title: "Shared Notes", icon: FileText },
     { title: "Notifications", icon: Bell },
+    { title: "Settings", icon: Settings },
     {
       title: "Profile",
       icon: UserRound,
