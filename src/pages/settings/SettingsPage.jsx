@@ -1,864 +1,219 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import DashboardShell from "../../components/DashboardShell";
-import {
-  Card,
-  CardHeader,
-  CardBody,
-  Button,
-  Input,
-  Badge,
-} from "../../components/ui";
+import { Badge, Button, Card, CardBody, CardHeader, Input } from "../../components/ui";
+import MediaUpload from "../../components/ui/MediaUpload";
+import { AlertCircle, Camera, Mail, Phone, Save, UserRound } from "lucide-react";
+import api from "../../services/api";
+import { getRoleName } from "../../services/notifications";
 
-import {
-  User,
-  Building2,
-  Settings as SettingsIcon,
-  Database,
-  History,
-  AlertTriangle,
-  Save,
-  Camera,
-  GraduationCap,
-  Users,
-  BriefcaseBusiness,
-} from "lucide-react";
+const readAuth = () => {
+  try {
+    return JSON.parse(localStorage.getItem("auth_user") || sessionStorage.getItem("auth_user") || "{}");
+  } catch {
+    return {};
+  }
+};
 
-/* ======================================================
-    Toggle Switch
-====================================================== */
+const profileStorageKey = (userId) => `tpcms_profile_${userId || "current"}`;
 
-function Toggle({ checked, onChange }) {
-  return (
-    <button
-      type="button"
-      onClick={() => onChange(!checked)}
-      className={`relative w-11 h-6 rounded-full transition ${
-        checked
-          ? "bg-orbit-primary"
-          : "bg-orbit-surface3"
-      }`}
-    >
-      <span
-        className={`absolute top-1 left-1 w-4 h-4 rounded-full bg-white transition-transform ${
-          checked ? "translate-x-5" : ""
-        }`}
-      />
-    </button>
-  );
-}
+const profileFromAuth = (auth) => {
+  const user = auth?.user || {};
+  let savedProfile = {};
+  try {
+    savedProfile = JSON.parse(localStorage.getItem(profileStorageKey(user.user_id)) || "{}");
+  } catch {
+    savedProfile = {};
+  }
 
-/* ======================================================
-    Section Card
-====================================================== */
-
-function SectionCard({
-  icon: Icon,
-  title,
-  subtitle,
-  children,
-}) {
-  return (
-    <Card>
-
-      <CardHeader>
-
-        <div className="flex items-center gap-3">
-
-          <div className="w-10 h-10 rounded-xl bg-orbit-primary/10 flex items-center justify-center">
-
-            <Icon
-              size={18}
-              className="text-orbit-primary-light"
-            />
-
-          </div>
-
-          <div>
-
-            <h2 className="font-semibold text-slate-100">
-
-              {title}
-
-            </h2>
-
-            <p className="text-xs text-slate-500">
-
-              {subtitle}
-
-            </p>
-
-          </div>
-
-        </div>
-
-      </CardHeader>
-
-      <CardBody>
-
-        {children}
-
-      </CardBody>
-
-    </Card>
-  );
-}
-
-/* ======================================================
-    Placeholder
-====================================================== */
-
-function Placeholder({
-  title,
-  Icon,
-}) {
-  return (
-    <DashboardShell
-      title="Settings"
-      subtitle={title}
-    >
-      <Card>
-
-        <CardBody className="py-24 text-center">
-
-          <Icon
-            size={54}
-            className="mx-auto text-orbit-primary mb-5"
-          />
-
-          <h2 className="text-2xl font-semibold text-slate-200">
-
-            {title}
-
-          </h2>
-
-          <p className="text-slate-500 mt-2">
-
-            Settings for this role are coming soon.
-
-          </p>
-
-        </CardBody>
-
-      </Card>
-    </DashboardShell>
-  );
-}
-
-/* ======================================================
-    Component
-====================================================== */
+  return {
+    name: savedProfile.name ?? user.name ?? "",
+    email: savedProfile.email ?? user.email ?? "",
+    mobile_no: savedProfile.mobile_no ?? user.mobile_no ?? "",
+    image_url: savedProfile.image_url ?? user.image_url ?? "",
+  };
+};
 
 export default function SettingsPage() {
-
-  const auth = JSON.parse(
-    sessionStorage.getItem("auth_user") || "{}"
-  );
-
-  const roleId = auth?.user?.role_id;
-
-  /* ==============================
-      Other Roles
-  ============================== */
-
-  if (roleId === 2) {
-    return (
-      <Placeholder
-        title="Student Settings"
-        Icon={GraduationCap}
-      />
-    );
-  }
-
-  if (roleId === 3) {
-    return (
-      <Placeholder
-        title="Coordinator Settings"
-        Icon={Users}
-      />
-    );
-  }
-
-  if (roleId === 4) {
-    return (
-      <Placeholder
-        title="Company Settings"
-        Icon={BriefcaseBusiness}
-      />
-    );
-  }
-
-  /* ==============================
-      States
-  ============================== */
-
+  const initialAuth = useMemo(readAuth, []);
+  const [auth, setAuth] = useState(initialAuth);
+  const [profile, setProfile] = useState(() => profileFromAuth(initialAuth));
   const [saving, setSaving] = useState(false);
+  const [message, setMessage] = useState("");
+  const [error, setError] = useState("");
 
-  const [saved, setSaved] = useState(false);
+  const user = auth?.user || {};
+  const role = getRoleName(user);
 
-  const [profile, setProfile] = useState({
-    name: auth?.user?.name || "",
-    email: auth?.user?.email || "",
-    mobile: auth?.user?.mobile_no || "",
-  });
+  const update = (field) => (event) => {
+    setProfile((current) => ({ ...current, [field]: event.target.value }));
+    setMessage("");
+    setError("");
+  };
 
-  const [institute, setInstitute] =
-    useState({
-      college: "",
-      university: "",
-      website: "",
-      address: "",
-      academicYear: "",
-      placementSession: "",
-    });
+  const saveLocalProfile = (nextProfile) => {
+    const nextUser = {
+      ...user,
+      name: nextProfile.name,
+      email: nextProfile.email,
+      mobile_no: nextProfile.mobile_no,
+      image_url: nextProfile.image_url,
+    };
+    const nextAuth = { ...auth, user: nextUser };
 
-  const [system, setSystem] =
-    useState({
-      studentRegistration: true,
-      companyRegistration: true,
-      resumeBuilder: true,
-      placementModule: true,
-      maintenanceMode: false,
-    });
+    localStorage.setItem(profileStorageKey(user.user_id), JSON.stringify(nextProfile));
+    localStorage.setItem("auth_user", JSON.stringify(nextAuth));
+    setAuth(nextAuth);
+    window.dispatchEvent(new Event("tpcms-profile-updated"));
+  };
 
-  const auditLogs = [
-    {
-      time: "13 Jul 2026 10:15",
-      action: "Approved Company",
-      user: "Super Admin",
-    },
-    {
-      time: "13 Jul 2026 10:30",
-      action: "Added Department",
-      user: "Super Admin",
-    },
-    {
-      time: "13 Jul 2026 11:05",
-      action: "Posted Placement",
-      user: "Super Admin",
-    },
-  ];
+  const handleSave = async () => {
+    const nextProfile = {
+      name: profile.name.trim(),
+      email: profile.email.trim(),
+      mobile_no: profile.mobile_no.trim(),
+      image_url: profile.image_url || "",
+    };
 
-  async function handleSave() {
-
-    try {
-
-      setSaving(true);
-
-      // Future API
-      // await api.put("/settings", {
-      //   profile,
-      //   institute,
-      //   system
-      // });
-
-      await new Promise(resolve =>
-        setTimeout(resolve, 800)
-      );
-
-      setSaved(true);
-
-      setTimeout(() => {
-        setSaved(false);
-      }, 2000);
-
-    } finally {
-
-      setSaving(false);
-
+    if (!nextProfile.name || !nextProfile.email) {
+      setError("Name and email are required.");
+      return;
     }
 
-  }
+    if (nextProfile.mobile_no && !/^\d{10}$/.test(nextProfile.mobile_no)) {
+      setError("Mobile number must contain exactly 10 digits.");
+      return;
+    }
+
+    try {
+      setSaving(true);
+      setError("");
+      setMessage("");
+
+      if (role === "Student") {
+        await api.put("/students/me", {
+          email: nextProfile.email,
+          mobile_no: nextProfile.mobile_no || undefined,
+          image_url: nextProfile.image_url || undefined,
+        });
+      } else if (role === "Company") {
+        await api.put(`/organizations/${user.user_id}`, {
+          name: nextProfile.name,
+          email: nextProfile.email,
+          mobile_no: nextProfile.mobile_no || undefined,
+        });
+      }
+
+      saveLocalProfile(nextProfile);
+      setProfile(nextProfile);
+      setMessage(
+        role === "Student" || role === "Company"
+          ? "Profile updated successfully."
+          : "Profile saved for this account on this device."
+      );
+    } catch (saveError) {
+      setError(saveError.message || "Unable to update profile.");
+    } finally {
+      setSaving(false);
+    }
+  };
 
   return (
-    <DashboardShell
-      title="Super Admin Settings"
-      subtitle="Manage portal configuration"
-    >
-            <div className="space-y-6">
+    <DashboardShell title="Settings" subtitle="Manage your account details and profile image">
+      <div className="mx-auto w-full max-w-4xl space-y-6">
+        <Card>
+          <CardHeader
+            title="My Profile"
+            subtitle="Update the information shown across the portal."
+            actions={<Badge variant="primary">{role}</Badge>}
+          />
+          <CardBody>
+            {error && (
+              <div className="mb-5 flex items-center gap-2 rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-300">
+                <AlertCircle size={16} />
+                {error}
+              </div>
+            )}
+            {message && (
+              <div className="mb-5 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-300">
+                {message}
+              </div>
+            )}
 
-        {/* Header */}
-
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-
-          <div>
-
-            <h1 className="text-3xl font-bold text-slate-100">
-
-              Super Admin Settings
-
-            </h1>
-
-            <p className="text-slate-500 mt-1">
-
-              Configure the Training & Placement Management System.
-
-            </p>
-
-          </div>
-
-          <Button
-            onClick={handleSave}
-            loading={saving}
-            icon={<Save size={16} />}
-          >
-            {saved ? "Saved!" : "Save Changes"}
-          </Button>
-
-        </div>
-
-        {saved && (
-
-          <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-300">
-
-            Settings saved successfully.
-
-          </div>
-
-        )}
-
-        {/* ===========================================
-                ADMIN PROFILE
-        =========================================== */}
-
-        <SectionCard
-          icon={User}
-          title="Admin Profile"
-          subtitle="Manage administrator account."
-        >
-
-          <div className="flex flex-col lg:flex-row gap-8">
-
-            <div className="flex flex-col items-center">
-
-              <div className="relative">
-
-                <div className="w-28 h-28 rounded-3xl bg-gradient-to-br from-orbit-primary to-violet-600 flex items-center justify-center text-4xl font-bold text-white">
-
-                  {profile.name
-                    ? profile.name.charAt(0).toUpperCase()
-                    : "A"}
-
-                </div>
-
-                <button
-                  className="absolute -bottom-2 -right-2 w-9 h-9 rounded-full bg-orbit-primary flex items-center justify-center"
-                >
-
-                  <Camera
-                    size={15}
-                    className="text-white"
+            <div className="flex flex-col gap-8 lg:flex-row">
+              <div className="flex w-full flex-col items-center gap-4 lg:w-48">
+                {profile.image_url ? (
+                  <img
+                    src={profile.image_url}
+                    alt="Profile"
+                    className="h-28 w-28 rounded-3xl border border-orbit-border object-cover"
                   />
-
-                </button>
-
+                ) : (
+                  <div className="flex h-28 w-28 items-center justify-center rounded-3xl bg-gradient-to-br from-orbit-primary to-orbit-accent text-4xl font-bold text-white">
+                    {(profile.name || "U").charAt(0).toUpperCase()}
+                  </div>
+                )}
+                <div className="w-full">
+                  <MediaUpload
+                    label="Profile image"
+                    accept="image/*"
+                    value={profile.image_url}
+                    onChange={(url) => {
+                      setProfile((current) => ({ ...current, image_url: url }));
+                      setMessage("");
+                    }}
+                    uploadPath="/uploads/profile"
+                    hint="JPG, PNG, or WebP profile image"
+                  />
+                </div>
               </div>
 
-              <Badge
-                variant="success"
-                className="mt-4"
-              >
-                Super Admin
-              </Badge>
+              <div className="grid flex-1 gap-5 md:grid-cols-2">
+                <Input
+                  label="Full Name"
+                  value={profile.name}
+                  onChange={update("name")}
+                  prefix={<UserRound size={16} />}
+                  required
+                />
+                <Input
+                  label="Email Address"
+                  type="email"
+                  value={profile.email}
+                  onChange={update("email")}
+                  prefix={<Mail size={16} />}
+                  required
+                />
+                <Input
+                  label="Mobile Number"
+                  type="tel"
+                  inputMode="numeric"
+                  maxLength={10}
+                  value={profile.mobile_no}
+                  onChange={update("mobile_no")}
+                  prefix={<Phone size={16} />}
+                  placeholder="10-digit mobile number"
+                />
+                <Input label="Role" value={role} disabled />
 
-            </div>
-
-            <div className="flex-1 grid md:grid-cols-2 gap-5">
-
-              <Input
-                label="Full Name"
-                value={profile.name}
-                onChange={(e)=>
-                  setProfile({
-                    ...profile,
-                    name:e.target.value,
-                  })
-                }
-              />
-
-              <Input
-                label="Email"
-                type="email"
-                value={profile.email}
-                onChange={(e)=>
-                  setProfile({
-                    ...profile,
-                    email:e.target.value,
-                  })
-                }
-              />
-
-              <Input
-                label="Mobile Number"
-                value={profile.mobile}
-                onChange={(e)=>
-                  setProfile({
-                    ...profile,
-                    mobile:e.target.value,
-                  })
-                }
-              />
-
-              <Input
-                label="Role"
-                value="Super Admin"
-                disabled
-              />
-
-            </div>
-
-          </div>
-
-        </SectionCard>
-
-        {/* ===========================================
-                INSTITUTE SETTINGS
-        =========================================== */}
-
-        <SectionCard
-          icon={Building2}
-          title="Institute Settings"
-          subtitle="Manage institute information."
-        >
-
-          <div className="grid md:grid-cols-2 gap-5">
-
-            <Input
-              label="Institute Name"
-              value={institute.college}
-              onChange={(e)=>
-                setInstitute({
-                  ...institute,
-                  college:e.target.value,
-                })
-              }
-            />
-
-            <Input
-              label="University"
-              value={institute.university}
-              onChange={(e)=>
-                setInstitute({
-                  ...institute,
-                  university:e.target.value,
-                })
-              }
-            />
-
-            <Input
-              label="Website"
-              value={institute.website}
-              onChange={(e)=>
-                setInstitute({
-                  ...institute,
-                  website:e.target.value,
-                })
-              }
-            />
-
-            <Input
-              label="Academic Year"
-              value={institute.academicYear}
-              onChange={(e)=>
-                setInstitute({
-                  ...institute,
-                  academicYear:e.target.value,
-                })
-              }
-            />
-
-            <Input
-              label="Placement Session"
-              value={institute.placementSession}
-              onChange={(e)=>
-                setInstitute({
-                  ...institute,
-                  placementSession:e.target.value,
-                })
-              }
-            />
-
-            <Input
-              label="Institute Address"
-              value={institute.address}
-              onChange={(e)=>
-                setInstitute({
-                  ...institute,
-                  address:e.target.value,
-                })
-              }
-            />
-
-          </div>
-
-        </SectionCard>
-                {/* ===========================================
-                SYSTEM SETTINGS
-        =========================================== */}
-
-        <SectionCard
-          icon={SettingsIcon}
-          title="System Settings"
-          subtitle="Enable or disable portal features."
-        >
-
-          <div className="space-y-5">
-
-            <div className="flex items-center justify-between border-b border-orbit-border pb-4">
-              <div>
-                <h4 className="font-medium text-slate-200">
-                  Student Registration
-                </h4>
-                <p className="text-xs text-slate-500">
-                  Allow students to register.
-                </p>
+                <div className="md:col-span-2 flex flex-wrap items-center gap-3 pt-1">
+                  <Button onClick={handleSave} loading={saving} icon={<Save size={16} />}>
+                    Save Profile
+                  </Button>
+                  <span className="inline-flex items-center gap-1 text-xs text-slate-500">
+                    <Camera size={13} /> Upload an image before saving to use it as your avatar.
+                  </span>
+                </div>
               </div>
-
-              <Toggle
-                checked={system.studentRegistration}
-                onChange={(value) =>
-                  setSystem({
-                    ...system,
-                    studentRegistration: value,
-                  })
-                }
-              />
             </div>
-
-            <div className="flex items-center justify-between border-b border-orbit-border pb-4">
-              <div>
-                <h4 className="font-medium text-slate-200">
-                  Company Registration
-                </h4>
-                <p className="text-xs text-slate-500">
-                  Allow companies to register.
-                </p>
-              </div>
-
-              <Toggle
-                checked={system.companyRegistration}
-                onChange={(value) =>
-                  setSystem({
-                    ...system,
-                    companyRegistration: value,
-                  })
-                }
-              />
-            </div>
-
-            <div className="flex items-center justify-between border-b border-orbit-border pb-4">
-              <div>
-                <h4 className="font-medium text-slate-200">
-                  Resume Builder
-                </h4>
-                <p className="text-xs text-slate-500">
-                  Enable student resume builder.
-                </p>
-              </div>
-
-              <Toggle
-                checked={system.resumeBuilder}
-                onChange={(value) =>
-                  setSystem({
-                    ...system,
-                    resumeBuilder: value,
-                  })
-                }
-              />
-            </div>
-
-            <div className="flex items-center justify-between border-b border-orbit-border pb-4">
-              <div>
-                <h4 className="font-medium text-slate-200">
-                  Placement Module
-                </h4>
-                <p className="text-xs text-slate-500">
-                  Enable placement drives.
-                </p>
-              </div>
-
-              <Toggle
-                checked={system.placementModule}
-                onChange={(value) =>
-                  setSystem({
-                    ...system,
-                    placementModule: value,
-                  })
-                }
-              />
-            </div>
-
-            <div className="flex items-center justify-between">
-              <div>
-                <h4 className="font-medium text-red-300">
-                  Maintenance Mode
-                </h4>
-                <p className="text-xs text-slate-500">
-                  Disable the portal temporarily.
-                </p>
-              </div>
-
-              <Toggle
-                checked={system.maintenanceMode}
-                onChange={(value) =>
-                  setSystem({
-                    ...system,
-                    maintenanceMode: value,
-                  })
-                }
-              />
-            </div>
-
-          </div>
-
-        </SectionCard>
-
-        {/* ===========================================
-                BACKUP & RESTORE
-        =========================================== */}
-
-        <SectionCard
-          icon={Database}
-          title="Backup & Restore"
-          subtitle="Database management."
-        >
-
-          <div className="flex flex-wrap gap-4">
-
-            <Button>
-
-              Backup Database
-
-            </Button>
-
-            <Button variant="secondary">
-
-              Download Backup
-
-            </Button>
-
-            <Button variant="outline">
-
-              Restore Backup
-
-            </Button>
-
-          </div>
-
-          <div className="mt-6 rounded-xl border border-orbit-border bg-orbit-surface2 p-4">
-
-            <p className="text-sm text-slate-300">
-
-              Last Backup
-
-            </p>
-
-            <p className="text-xs text-slate-500 mt-1">
-
-              13 July 2026 • 03:45 PM
-
-            </p>
-
-          </div>
-
-        </SectionCard>
-
-        {/* ===========================================
-                AUDIT LOGS
-        =========================================== */}
-
-        <SectionCard
-          icon={History}
-          title="Audit Logs"
-          subtitle="Recent administrator activities."
-        >
-
-          <div className="overflow-x-auto">
-
-            <table className="w-full">
-
-              <thead>
-
-                <tr className="border-b border-orbit-border">
-
-                  <th className="text-left py-3 text-slate-400">
-                    Time
-                  </th>
-
-                  <th className="text-left py-3 text-slate-400">
-                    User
-                  </th>
-
-                  <th className="text-left py-3 text-slate-400">
-                    Action
-                  </th>
-
-                  <th className="text-left py-3 text-slate-400">
-                    Status
-                  </th>
-
-                </tr>
-
-              </thead>
-
-              <tbody>
-
-                {auditLogs.map((log, index) => (
-
-                  <tr
-                    key={index}
-                    className="border-b border-orbit-border"
-                  >
-
-                    <td className="py-4 text-slate-400">
-                      {log.time}
-                    </td>
-
-                    <td className="py-4 text-slate-300">
-                      {log.user}
-                    </td>
-
-                    <td className="py-4 text-slate-300">
-                      {log.action}
-                    </td>
-
-                    <td className="py-4">
-
-                      <Badge variant="success">
-
-                        Success
-
-                      </Badge>
-
-                    </td>
-
-                  </tr>
-
-                ))}
-
-              </tbody>
-
-            </table>
-
-          </div>
-
-        </SectionCard>
-                {/* ===========================================
-                DANGER ZONE
-        =========================================== */}
-
-        <SectionCard
-          icon={AlertTriangle}
-          title="Danger Zone"
-          subtitle="These actions permanently affect the system."
-        >
-
-          <div className="space-y-4">
-
-            <div className="flex items-center justify-between p-4 rounded-xl border border-yellow-500/30 bg-yellow-500/5">
-
-              <div>
-
-                <h4 className="font-semibold text-yellow-300">
-
-                  Clear System Cache
-
-                </h4>
-
-                <p className="text-xs text-slate-500 mt-1">
-
-                  Remove cached files to improve performance.
-
-                </p>
-
-              </div>
-
-              <Button
-                variant="outline"
-                onClick={() => alert("Cache cleared.")}
-              >
-                Clear Cache
-              </Button>
-
-            </div>
-
-            <div className="flex items-center justify-between p-4 rounded-xl border border-orange-500/30 bg-orange-500/5">
-
-              <div>
-
-                <h4 className="font-semibold text-orange-300">
-
-                  Reset Settings
-
-                </h4>
-
-                <p className="text-xs text-slate-500 mt-1">
-
-                  Restore all settings to default values.
-
-                </p>
-
-              </div>
-
-              <Button
-                variant="secondary"
-                onClick={() => {
-                  if (
-                    window.confirm(
-                      "Reset all settings?"
-                    )
-                  ) {
-                    alert("Settings reset.");
-                  }
-                }}
-              >
-                Reset
-              </Button>
-
-            </div>
-
-            <div className="flex items-center justify-between p-4 rounded-xl border border-red-500/30 bg-red-500/5">
-
-              <div>
-
-                <h4 className="font-semibold text-red-300">
-
-                  Disable Placement Portal
-
-                </h4>
-
-                <p className="text-xs text-slate-500 mt-1">
-
-                  Disable access for students, coordinators and companies.
-
-                </p>
-
-              </div>
-
-              <Button
-                variant="destructive"
-                onClick={() => {
-                  if (
-                    window.confirm(
-                      "Disable placement portal?"
-                    )
-                  ) {
-                    alert("Portal disabled.");
-                  }
-                }}
-              >
-                Disable Portal
-              </Button>
-
-            </div>
-
-          </div>
-
-        </SectionCard>
-
+          </CardBody>
+        </Card>
+
+        {(role === "Super Admin" || role === "Coordinator") && (
+          <p className="rounded-lg border border-orbit-border bg-orbit-surface/50 px-4 py-3 text-xs leading-5 text-slate-500">
+            Profile fields are kept in the frontend account session because the currently available API exposes no self-profile update endpoint for this role.
+          </p>
+        )}
       </div>
-
     </DashboardShell>
-
   );
-
 }

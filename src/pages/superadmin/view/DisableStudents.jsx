@@ -27,10 +27,23 @@ export default function DisableStudents() {
   const toggleGraduate = async (student) => {
     setUpdating(student.user_id)
     try {
-      await api.put(`/students/${student.user_id}`, { is_graduate: !student.is_graduate })
-      await load()
+      const is_graduate = !Boolean(student.is_graduate)
+      const res = await api.put(`/students/${student.user_id}`, { is_graduate })
+      const savedStatus = res?.data?.is_graduate
+
+      if (typeof savedStatus !== "boolean") {
+        throw new Error("The student status was not saved")
+      }
+
+      setStudents((currentStudents) =>
+        currentStudents.map((currentStudent) =>
+          currentStudent.user_id === student.user_id
+            ? { ...currentStudent, is_graduate: savedStatus }
+            : currentStudent
+        )
+      )
     } catch (err) {
-      alert(err.message)
+      alert(err.message || "Failed to update student status")
     } finally {
       setUpdating(null)
     }
@@ -65,8 +78,8 @@ export default function DisableStudents() {
                     <td className="px-5 py-3 text-slate-400 font-mono text-xs">{s.roll_no || "—"}</td>
                     <td className="px-5 py-3 text-slate-200 font-medium">{s.user_table.name || "Unknown"}</td>
                     <td className="px-5 py-3">
-                      <Badge variant={s.is_active === false ? "neutral" : "primary"}>
-                        {s.is_active === false ? "Inactive" : "Active"}
+                      <Badge variant={s.is_graduate ? "neutral" : "primary"}>
+                        {s.is_graduate ? "Disabled" : "Active"}
                       </Badge>
                     </td>
                     <td className="px-5 py-3">

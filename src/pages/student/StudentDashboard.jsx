@@ -8,9 +8,11 @@ import TrainingView from "./view/TrainingView";
 import ApplicationsView from "./view/ApplicationsView";
 import NotificationsView from "./view/NotificationsView";
 import ProfileView from "./view/ProfileView";
+import SettingsPage from "../settings/SettingsPage";
 import InterviewLettersView from "./view/InterviewLettersView";
 import Resume from '../../utils/resumeBuilder';
 import ResumePreview from './../components/Resume';
+import ViewNotes from "./../components/ViewNotes";
 export default function StudentDashboard() {
   const [searchParams] = useSearchParams();
   const view = searchParams.get("view");
@@ -23,7 +25,9 @@ export default function StudentDashboard() {
     "placement-applications": <ApplicationsView filterType="Placement" />,
     "training-applications": <ApplicationsView filterType="Training" />,
     notifications: <NotificationsView />,
+    shared_notes: <ViewNotes />,
     profile: <ProfileView />,
+    settings: <SettingsPage />,
     letters: <InterviewLettersView />,
   };
 

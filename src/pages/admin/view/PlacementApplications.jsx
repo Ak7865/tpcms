@@ -82,7 +82,7 @@ export default function PlacementApplications() {
       );
 
       await api.patch(
-        `/placement-applications/${application.placement_id}/students/${application.student_id}?status=approve`,
+        `/placement-applications/${application.placement_id}/students/${application.student_id}/status`,
         {}
       );
 
@@ -108,7 +108,7 @@ async function rejectApplication(application) {
   if (remark === null) return;
 
   try {
-    await api.patch(
+    await api.get(
       `/placement-applications/${application.placement_id}/students/${application.student_id}?status=reject`,
       {
         remarks: remark,

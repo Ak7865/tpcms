@@ -10,39 +10,61 @@ export default function Recruitment() {
   const [error, setError] = useState('')
   const [actionLoading, setActionLoading] = useState({})
   const [selectedJob, setSelectedJob] = useState('')
-
+const getStatus = (statusId) => {
+  switch (statusId) {
+    case 2:
+      return "Shortlisted";
+    case 3:
+      return "Rejected";
+    case 4:
+      return "Interview";
+    case 5:
+      return "Selected";
+    default:
+      return "Applied";
+  }
+};
   useEffect(() => {
     const fetchApplications = async () => {
       try {
         setLoading(true)
         setError('')
-        const result = await api.get('/placement-applications')
-        const data = result?.data || result || []
+        const [placementRes, trainingRes] = await Promise.all([
+          api.get("/placement-applications"),
+          api.get("/training-applications"),
+        ]);
         
-        const mapped = data.map((app) => {
-          const studentName = app.student_table?.user_table?.name || 'Student'
-          const deptName = app.student_table?.department_table?.department_name || 'N/A'
-          const cgpaVal = app.student_table?.cgpa || 'N/A'
-          const title = app.placement_table?.title || 'Placement Job'
-          
-          let statusStr = 'Applied'
-          if (app.status_id === 2) statusStr = 'Shortlisted'
-          if (app.status_id === 3) statusStr = 'Rejected'
+         const placementData = placementRes?.data || placementRes || [];
+        const trainingData = trainingRes?.data || trainingRes || [];
+        
+        const placementApplications = placementData.map((app) => ({
+      type: "placement",
+      application_id: `P-${app.placement_id}-${app.student_id}`,
+      placement_id: app.placement_id,
+      student_id: app.student_id,
+      student_name: app.student_table?.user_table?.name,
+      job_title: app.placement_table?.title,
+      department_name: app.student_table?.department_table?.department_name,
+      cgpa: app.student_table?.cgpa,
+      status: getStatus(app.status_id),
+    }));
 
-          return {
-            application_id: `${app.placement_id}-${app.student_id}`,
-            placement_id: app.placement_id,
-            student_id: app.student_id,
-            student_name: studentName,
-            placement_title: title,
-            job_title: title,
-            department_name: deptName,
-            branch: deptName,
-            cgpa: cgpaVal,
-            status: statusStr,
-          }
-        })
-        setApplications(mapped)
+    const trainingApplications = trainingData.map((app) => ({
+      type: "training",
+      application_id: `T-${app.training_id}-${app.student_id}`,
+      training_id: app.training_id,
+      student_id: app.student_id,
+      student_name: app.student_table?.user_table?.name,
+      job_title: app.training_table?.title,
+      department_name: app.student_table?.department_table?.department_name,
+      cgpa: app.student_table?.cgpa,
+      status: getStatus(app.status_id),
+    }));
+
+            setApplications([
+      ...placementApplications,
+      ...trainingApplications,
+    ]);
       } catch (err) {
         setError(err.message || 'Failed to load applications')
       } finally {
@@ -52,25 +74,51 @@ export default function Recruitment() {
     fetchApplications()
   }, [])
 
-  const filteredApplications = useMemo(() => {
-    if (!selectedJob) return applications
-    return applications.filter((app) => String(app.placement_id) === String(selectedJob))
-  }, [applications, selectedJob])
+const filteredApplications = applications.filter((app) => {
+  if (!selectedJob) return true;
 
-  const updateStatus = async (applicationId, status) => {
-    const [placementId, studentId] = applicationId.split('-')
-    try {
-      setActionLoading({ ...actionLoading, [applicationId]: status })
-      await api.patch(`/placement-applications/${placementId}/students/${studentId}/status`, { status })
-      setApplications(applications.map((app) =>
-        app.application_id === applicationId ? { ...app, status } : app
-      ))
-    } catch (err) {
-      setError(err.message || `Failed to update status to ${status}`)
-    } finally {
-      setActionLoading({ ...actionLoading, [applicationId]: null })
-    }
+  return (
+    `${app.type}-${app.placement_id ?? app.training_id}` === selectedJob
+  );
+});
+
+ const updateStatus = async (app, status) => {
+  try {
+    setActionLoading((prev) => ({
+      ...prev,
+      [app.application_id]: status,
+    }));
+
+    if (app.type === "placement") {
+      await api.patch(
+        `/placement-applications/${app.placement_id}/students/${app.student_id}/status`,
+        { status }
+      );
+    } else {
+     await api.patch(
+  `/training-applications/${app.training_id}/students/${app.student_id}?status=approve`,
+  {
+    remarks: ""
   }
+);
+    }
+
+    setApplications((prev) =>
+      prev.map((a) =>
+        a.application_id === app.application_id
+          ? { ...a, status }
+          : a
+      )
+    );
+  } catch (err) {
+    setError(err?.response?.data?.message || err.message);
+  } finally {
+    setActionLoading((prev) => ({
+      ...prev,
+      [app.application_id]: null,
+    }));
+  }
+};
 
   return (
     <DashboardShell title="Recruitment" subtitle="Review and manage student applications">
@@ -81,19 +129,32 @@ export default function Recruitment() {
           actions={
             <div className="relative">
               <select
-                value={selectedJob}
-                onChange={(e) => setSelectedJob(e.target.value)}
-                className="appearance-none w-48 px-3 py-1.5 pr-8 rounded-lg bg-orbit-surface2 border border-orbit-border text-xs text-slate-200 cursor-pointer"
-              >
-                <option value="">All Jobs</option>
-                {applications
-                  .filter((app, i, arr) => arr.findIndex((a) => (a.placement_id || a.job_id) === (app.placement_id || app.job_id)) === i)
-                  .map((app) => (
-                    <option key={app.placement_id || app.job_id} value={app.placement_id || app.job_id}>
-                      {app.job_title || app.placement_title || `Job ${app.placement_id || app.job_id}`}
-                    </option>
-                  ))}
-              </select>
+  value={selectedJob}
+  onChange={(e) => setSelectedJob(e.target.value)}
+  className="appearance-none w-48 px-3 py-1.5 pr-8 rounded-lg bg-orbit-surface2 border border-orbit-border text-xs text-slate-200 cursor-pointer"
+>
+  <option value="">All Jobs</option>
+
+  {applications
+    .filter(
+      (app, i, arr) =>
+        arr.findIndex(
+          (a) =>
+            `${a.type}-${a.placement_id ?? a.training_id}` ===
+            `${app.type}-${app.placement_id ?? app.training_id}`
+        ) === i
+    )
+    .map((app) => (
+      <option
+        key={`${app.type}-${app.placement_id ?? app.training_id}`}
+        value={`${app.type}-${app.placement_id ?? app.training_id}`}
+      >
+        {app.job_title ||
+          app.placement_title ||
+          `Job ${app.placement_id ?? app.training_id}`}
+      </option>
+    ))}
+</select>
             </div>
           }
         />
@@ -146,7 +207,7 @@ export default function Recruitment() {
                     <Button
                       size="xs"
                       variant="outline"
-                      onClick={() => updateStatus(app.application_id || app.id, 'Shortlisted')}
+                      onClick={() => updateStatus(app || app.id, 'Shortlisted')}
                       loading={actionLoading[app.application_id || app.id] === 'Shortlisted'}
                       icon={<UserCheck size={12} />}
                     >
@@ -155,7 +216,7 @@ export default function Recruitment() {
                     <Button
                       size="xs"
                       variant="outline"
-                      onClick={() => updateStatus(app.application_id || app.id, 'Interview')}
+                      onClick={() => updateStatus(app || app.id, 'Interview')}
                       loading={actionLoading[app.application_id || app.id] === 'Interview'}
                       icon={<Calendar size={12} />}
                     >
@@ -164,7 +225,7 @@ export default function Recruitment() {
                     <Button
                       size="xs"
                       variant="destructive"
-                      onClick={() => updateStatus(app.application_id || app.id, 'Rejected')}
+                      onClick={() => updateStatus(app || app.id, 'Rejected')}
                       loading={actionLoading[app.application_id || app.id] === 'Rejected'}
                       icon={<XCircle size={12} />}
                     >
