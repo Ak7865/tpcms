@@ -1,10 +1,30 @@
-import { useState, useEffect } from 'react';
-import { useLocation } from 'react-router-dom';
-import { Menu, Search, Bell, Sun, Moon, X } from 'lucide-react';
+import { useState, useEffect, useMemo } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
+import {
+  Bell,
+  Building2,
+  ChevronDown,
+  FileText,
+  GraduationCap,
+  Menu,
+  Moon,
+  Search,
+  Sun,
+  BriefcaseBusiness,
+  X,
+} from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '../../utils/cn';
 import { useSidebar } from '../../hooks/useSidebar';
 import { useTheme } from '../../hooks/useTheme';
+import api from '../../services/api';
+import {
+  getAuthUser,
+  getRoleName,
+  loadNotifications,
+  markNotificationsRead,
+  relativeTime,
+} from '../../services/notifications';
 
 const routeLabels = {
   "/super-admin/dashboard": "Super Admin Dashboard",
@@ -104,28 +124,26 @@ export function Topbar() {
   const [loadingSearch, setLoadingSearch] = useState(false);
   const [authVersion, setAuthVersion] = useState(0);
 
-  // Get auth user reactively for avatar
-  const [user, setUser] = useState(() => {
-    const auth = JSON.parse(localStorage.getItem('auth_user') || '{}')
-    return auth?.user || {}
-  })
-
-  useEffect(() => {
-    const handleUpdate = () => {
-      const auth = JSON.parse(localStorage.getItem('auth_user') || '{}')
-      setUser(auth?.user || {})
-    }
-    window.addEventListener('auth_user_updated', handleUpdate)
-    window.addEventListener('storage', handleUpdate)
-    return () => {
-      window.removeEventListener('auth_user_updated', handleUpdate)
-      window.removeEventListener('storage', handleUpdate)
-    }
-  }, [])
-  const user = getAuthUser();
+  // Get auth user reactively for avatar and role
+  const [user, setUser] = useState(() => getAuthUser());
   const role = getRoleName(user);
   const pageTitle = routeLabels[location.pathname] ?? "Dashboard";
   const unreadCount = notifications.filter((notification) => notification.unread).length;
+
+  useEffect(() => {
+    const handleUpdate = () => {
+      setUser(getAuthUser());
+      setAuthVersion((version) => version + 1);
+    };
+    window.addEventListener("auth_user_updated", handleUpdate);
+    window.addEventListener("tpcms-profile-updated", handleUpdate);
+    window.addEventListener("storage", handleUpdate);
+    return () => {
+      window.removeEventListener("auth_user_updated", handleUpdate);
+      window.removeEventListener("tpcms-profile-updated", handleUpdate);
+      window.removeEventListener("storage", handleUpdate);
+    };
+  }, []);
 
   useEffect(() => {
     let active = true;
@@ -147,16 +165,6 @@ export function Topbar() {
       window.removeEventListener("tpcms-notifications-updated", refresh);
     };
   }, [role, authVersion]);
-
-  useEffect(() => {
-    const refreshUser = () => setAuthVersion((version) => version + 1);
-    window.addEventListener("tpcms-profile-updated", refreshUser);
-    window.addEventListener("storage", refreshUser);
-    return () => {
-      window.removeEventListener("tpcms-profile-updated", refreshUser);
-      window.removeEventListener("storage", refreshUser);
-    };
-  }, []);
 
   useEffect(() => {
     if (!showSearch) return undefined;
