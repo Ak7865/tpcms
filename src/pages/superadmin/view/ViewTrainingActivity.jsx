@@ -11,6 +11,7 @@ import {
   XCircle,
   Sparkles,
   ImageIcon,
+  Building2,
 } from "lucide-react";
 import { api } from "../../../services/api";
 
@@ -22,9 +23,24 @@ function getStatus(t) {
 }
 
 const statusConfig = {
-  Active: { variant: "success", icon: <CheckCircle2 size={13} className="inline mr-1" />, border: "border-emerald-500/20" },
-  Expired: { variant: "warning", icon: <CalendarClock size={13} className="inline mr-1" />, border: "border-amber-500/20" },
-  Closed: { variant: "neutral", icon: <XCircle size={13} className="inline mr-1" />, border: "border-slate-600/20" },
+  Active: {
+    variant: "success",
+    className: "text-emerald-700 dark:text-emerald-400 bg-emerald-500/15 border border-emerald-500/30",
+    icon: <CheckCircle2 size={13} className="inline mr-1" />,
+    border: "border-emerald-500/20",
+  },
+  Expired: {
+    variant: "warning",
+    className: "text-amber-700 dark:text-amber-400 bg-amber-500/15 border border-amber-500/30",
+    icon: <CalendarClock size={13} className="inline mr-1" />,
+    border: "border-amber-500/20",
+  },
+  Closed: {
+    variant: "neutral",
+    className: "text-slate-700 dark:text-slate-400 bg-slate-500/15 border border-slate-500/30",
+    icon: <XCircle size={13} className="inline mr-1" />,
+    border: "border-slate-600/20",
+  },
 };
 
 function fmtDate(d) {
@@ -54,7 +70,9 @@ export default function ViewTrainingActivity() {
     return trainings.filter(
       (t) =>
         t.title?.toLowerCase().includes(kw) ||
-        t.description?.toLowerCase().includes(kw)
+        t.description?.toLowerCase().includes(kw) ||
+        t.user_table?.name?.toLowerCase().includes(kw) ||
+        t.user_table?.email?.toLowerCase().includes(kw)
     );
   }, [trainings, search]);
 
@@ -68,16 +86,40 @@ export default function ViewTrainingActivity() {
         {/* Stats */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           {[
-            { label: "Total Programs", value: trainings.length, icon: <BookOpenCheck size={22} className="text-orbit-primary" />, bg: "bg-orbit-primary/10" },
-            { label: "Active", value: active, icon: <CheckCircle2 size={22} className="text-emerald-400" />, bg: "bg-emerald-500/10" },
-            { label: "Closed / Expired", value: closed, icon: <XCircle size={22} className="text-slate-500" />, bg: "bg-slate-500/10" },
+            {
+              label: "Total Programs",
+              value: trainings.length,
+              icon: <BookOpenCheck size={22} className="text-orbit-primary" />,
+              bg: "bg-orbit-primary/10",
+              textColor: "text-slate-900 dark:text-white",
+            },
+            {
+              label: "Active",
+              value: active,
+              icon: <CheckCircle2 size={22} className="text-emerald-600 dark:text-emerald-400" />,
+              bg: "bg-emerald-500/10",
+              textColor: "text-emerald-700 dark:text-emerald-400",
+            },
+            {
+              label: "Closed / Expired",
+              value: closed,
+              icon: <XCircle size={22} className="text-slate-600 dark:text-slate-400" />,
+              bg: "bg-slate-500/10",
+              textColor: "text-slate-700 dark:text-slate-300",
+            },
           ].map((s) => (
             <Card key={s.label}>
               <CardBody className="flex items-center gap-4">
-                <div className={`w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 ${s.bg}`}>{s.icon}</div>
+                <div className={`w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 ${s.bg}`}>
+                  {s.icon}
+                </div>
                 <div>
-                  <p className="text-xs text-slate-500 uppercase tracking-wider">{s.label}</p>
-                  <p className="text-3xl font-bold text-white mt-0.5">{s.value}</p>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 font-medium uppercase tracking-wider">
+                    {s.label}
+                  </p>
+                  <p className={`text-3xl font-bold mt-0.5 ${s.textColor}`}>
+                    {s.value}
+                  </p>
                 </div>
               </CardBody>
             </Card>
@@ -89,7 +131,12 @@ export default function ViewTrainingActivity() {
           <CardBody>
             <div className="relative max-w-md">
               <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" />
-              <Input className="pl-10" placeholder="Search trainings..." value={search} onChange={(e) => setSearch(e.target.value)} />
+              <Input
+                className="pl-10"
+                placeholder="Search by title, description, or organization..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+              />
             </div>
           </CardBody>
         </Card>
@@ -118,6 +165,8 @@ export default function ViewTrainingActivity() {
             {filtered.map((t) => {
               const status = getStatus(t);
               const cfg = statusConfig[status];
+              const orgName = t.user_table?.name || "College / Admin";
+
               return (
                 <div key={t.training_id} className={`rounded-2xl border bg-orbit-surface p-5 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 ${cfg.border}`}>
                   {/* Banner */}
@@ -135,25 +184,36 @@ export default function ViewTrainingActivity() {
                     <div className="w-9 h-9 rounded-lg bg-orbit-primary/10 flex items-center justify-center flex-shrink-0">
                       <BookOpenCheck size={17} className="text-orbit-primary" />
                     </div>
-                    <Badge variant={cfg.variant}>{cfg.icon}{status}</Badge>
+                    <Badge variant={cfg.variant} className={cfg.className}>{cfg.icon}{status}</Badge>
                   </div>
 
-                  <h3 className="text-base font-semibold text-slate-100 leading-snug mb-1">{t.title}</h3>
-                  {t.description && <p className="text-xs text-slate-500 line-clamp-2 mb-3">{t.description}</p>}
+                  <h3 className="text-base font-semibold text-slate-900 dark:text-slate-100 leading-snug mb-1">{t.title}</h3>
+
+                  {/* Organization name badge */}
+                  <div className="flex items-center gap-1.5 text-xs font-medium text-orbit-primary dark:text-violet-400 mb-2">
+                    <Building2 size={13} className="flex-shrink-0" />
+                    <span className="truncate">{orgName}</span>
+                  </div>
+
+                  {t.description && <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-2 mb-3">{t.description}</p>}
 
                   <div className="space-y-1.5 mt-3 pt-3 border-t border-orbit-border/50">
                     <div className="flex items-center justify-between text-xs">
-                      <span className="flex items-center gap-1.5 text-slate-500"><GraduationCap size={12} />Min CGPA</span>
+                      <span className="flex items-center gap-1.5 text-slate-500 dark:text-slate-400"><Building2 size={12} />Organization</span>
+                      <span className="font-semibold text-slate-800 dark:text-slate-200 truncate max-w-[170px]">{orgName}</span>
+                    </div>
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="flex items-center gap-1.5 text-slate-500 dark:text-slate-400"><GraduationCap size={12} />Min CGPA</span>
                       <span className="font-semibold text-orbit-primary">{t.min_cgpa ?? "—"}</span>
                     </div>
                     <div className="flex items-center justify-between text-xs">
-                      <span className="flex items-center gap-1.5 text-slate-500"><CalendarClock size={12} />Last Date</span>
-                      <span className="font-medium text-slate-300">{fmtDate(t.last_date_of_submission)}</span>
+                      <span className="flex items-center gap-1.5 text-slate-500 dark:text-slate-400"><CalendarClock size={12} />Last Date</span>
+                      <span className="font-medium text-slate-700 dark:text-slate-300">{fmtDate(t.last_date_of_submission)}</span>
                     </div>
                     {t.start_date && (
                       <div className="flex items-center justify-between text-xs">
-                        <span className="flex items-center gap-1.5 text-slate-500"><Sparkles size={12} />Period</span>
-                        <span className="font-medium text-slate-300">{fmtDate(t.start_date)} → {fmtDate(t.end_date)}</span>
+                        <span className="flex items-center gap-1.5 text-slate-500 dark:text-slate-400"><Sparkles size={12} />Period</span>
+                        <span className="font-medium text-slate-700 dark:text-slate-300">{fmtDate(t.start_date)} → {fmtDate(t.end_date)}</span>
                       </div>
                     )}
                   </div>
