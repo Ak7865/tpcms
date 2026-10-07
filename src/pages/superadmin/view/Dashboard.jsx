@@ -74,37 +74,37 @@ export default function Dashboard() {
 
       const dashboard = await api.get("/dashboards");
 
-      setMetrics(dashboard.data);
+      setMetrics(dashboard?.data?.data || dashboard?.data || {});
 
       /* Pending Organizations */
 
       const pending = await api.get("/organizations?status=pending");
 
-      setPendingApprovals(pending.data.data || []);
+      setPendingApprovals(pending?.data?.data || pending?.data || []);
 
       /* Organizations */
 
       const organizationRes = await api.get("/organizations");
 
-      setOrganizations(organizationRes.data.data || []);
+      setOrganizations(organizationRes?.data?.data || organizationRes?.data || []);
 
       /* Departments */
 
       const departmentRes = await api.get("/departments");
 
-      setDepartments(departmentRes.data.data || []);
+      setDepartments(departmentRes?.data?.data || departmentRes?.data || []);
 
       /* Trainings */
 
       const trainingRes = await api.get("/trainings");
 
-      setTrainings(trainingRes.data.data || []);
+      setTrainings(trainingRes?.data?.data || trainingRes?.data || []);
 
       /* Placements */
 
       const placementRes = await api.get("/placements");
 
-      setPlacements(placementRes.data.data || []);
+      setPlacements(placementRes?.data?.data || placementRes?.data || []);
     } catch (err) {
       console.error(err);
 
