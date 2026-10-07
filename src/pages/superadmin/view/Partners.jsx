@@ -71,7 +71,7 @@ export default function Partners() {
     const kw = search.toLowerCase();
     return companies.filter(
       (c) =>
-        c.name?.toLowerCase().includes(kw) ||
+        (c.user_table?.name || c.name)?.toLowerCase().includes(kw) ||
         c.user_table?.email?.toLowerCase().includes(kw) ||
         c.user_table?.mobile_no?.includes(search)
     );
@@ -191,7 +191,7 @@ export default function Partners() {
                                 <div className="w-8 h-8 rounded-lg bg-orbit-primary/10 flex items-center justify-center flex-shrink-0">
                                   <Building2 size={14} className="text-orbit-primary" />
                                 </div>
-                                {company.name}
+                                {company.user_table?.name || company.name || "Company"}
                               </div>
                             </td>
                             <td className="px-5 py-4 text-slate-400 text-xs">
@@ -222,7 +222,7 @@ export default function Partners() {
                             <tr key={`${company.user_id}-detail`} className="bg-orbit-surface2/40">
                               <td colSpan={6} className="px-8 py-4">
                                 <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">
-                                  Recent Job Listings from {company.name}
+                                  Recent Job Listings from {company.user_table?.name || company.name || "Company"}
                                 </p>
                                 {compPlacements.length === 0 ? (
                                   <p className="text-xs text-slate-600 italic">No placements posted yet.</p>
