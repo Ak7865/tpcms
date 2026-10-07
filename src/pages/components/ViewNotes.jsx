@@ -24,10 +24,8 @@ export default function ViewNotes() {
       setLoading(true);
 
       const res = await api.get("/notes");
-
-      if (res.data.success) {
-        setNotes(res.data.data || []);
-      }
+      const list = res?.data?.data || res?.data || [];
+      setNotes(Array.isArray(list) ? list : []);
     } catch (err) {
       console.error(err);
     } finally {
@@ -108,7 +106,13 @@ export default function ViewNotes() {
                     <FileText className="h-8 w-8 text-orbit-primary" />
 
                     <span className="text-xs text-slate-500">
-                      {note.created_at.split("T")[0] + "by" + note.creator_id}
+                      {(note.created_on || note.created_at
+                        ? new Date(note.created_on || note.created_at).toLocaleDateString("en-IN", {
+                            day: "2-digit",
+                            month: "short",
+                            year: "numeric",
+                          })
+                        : "") + (note.creator_id ? ` • By #${note.creator_id}` : "")}
                     </span>
 
                   </div>
